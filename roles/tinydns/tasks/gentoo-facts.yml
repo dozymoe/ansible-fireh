@@ -1,0 +1,7 @@
+- name: set gentoo djbdns facts
+  set_fact:
+    tinydns_unix_user: tinydns
+    dnscache_unix_user: dnscache
+    dnslog_unix_user: dnslog
+    tinydns_bin: /usr/bin/tinydns
+    axfrdns_bin: /usr/bin/axfrdns

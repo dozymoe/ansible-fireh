@@ -1,0 +1,37 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- lineinfile:
+    path: /etc/ssh/sshd_config
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: True
+  notify: reload ssh ({{ansible_distribution|lower}})
+  with_items:
+    - line: Port {{ansible_port | default(22)}}
+      regexp: '^#?Port\s'
+    - line: PermitRootLogin no
+      regexp: '^#?PermitRootLogin\s'
+    - line: PasswordAuthentication no
+      regexp: '^#?PasswordAuthentication\s'
+    - line: ChallengeResponseAuthentication yes
+      regexp: '^#?ChallengeResponseAuthentication\s'
+    - line: MaxAuthTries 3
+      regexp: '^#?MaxAuthTries\s'
+
+
+- import_tasks: sysadmin.yml
+  when: create_sysadmin_user|default(false)
+
+
+- blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} remote_admin"
+    content: |
+      Match User {{ansible_user}}
+          X11Forwarding no
+          AllowTcpForwarding no
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+  become: true
+  notify: reload ssh ({{ansible_distribution|lower}})

@@ -1,0 +1,17 @@
+- portage:
+    name: openssh
+  become: true
+
+- portage:
+    name: openssh
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- service:
+    name: sshd
+    enabled: yes
+    state: started
+  become: true

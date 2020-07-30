@@ -1,0 +1,15 @@
+- import_tasks: gentoo.yml
+
+
+- name: notify changed domains
+  include: dnsnotify.yml domain="{{ d.name }}"
+  loop: "{{tinydns_data_domains}}"
+  loop_control:
+    loop_var: d
+
+
+- name: notify changed hostnames
+  include: dnsnotify.yml domain="{{ d.domain }}"
+  loop: "{{tinydns_data_hostnames}}"
+  loop_control:
+    loop_var: d

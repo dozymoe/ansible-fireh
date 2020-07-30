@@ -1,0 +1,11 @@
+- blockinfile:
+    path: /etc/stunnel/stunnel.conf
+    marker: '# {mark} rsyslog'
+    content: |
+      [rsyslog]
+      accept = 127.0.0.1:514
+      connect = {{groups['central-log'][0]}}:30514
+      client = yes
+      #checkHost = {ssl_common_name}
+  become: true
+  notify: restart stunnel ({{ansible_distribution|lower}})

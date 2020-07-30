@@ -1,0 +1,24 @@
+client
+dev {{openvpn_dev|default('tun')}}
+topology subnet
+proto udp
+remote {{openvpn_host}} {{openvpn_port|default('1194')}}
+nobind
+script-security 2
+keepalive 10 120
+resolv-retry 30
+comp-lzo
+fast-io
+log /var/log/openvpn/{{openvpn_name}}.log
+verb 4
+
+persist-key
+persist-tun
+user {{openvpn_unix_user}}
+group {{openvpn_unix_group}}
+
+tls-client
+ca /etc/openvpn/{{openvpn_name}}/ca.crt
+cert /etc/openvpn/{{openvpn_name}}/client.crt
+key /etc/openvpn/{{openvpn_name}}/client.key
+tls-crypt /etc/openvpn/{{openvpn_name}}/ta.key

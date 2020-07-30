@@ -1,0 +1,33 @@
+- apt_repository:
+    repo: ppa:adiscon/v8-stable
+  become: true
+  when: ansible_distribution_version == '16.04'
+
+
+- apt:
+    name:
+      - rsyslog
+      - rsyslog-elasticsearch
+    state: latest
+  become: true
+
+
+# Disable /var/log/syslog in central log box, it can get very big, in hunderds
+# of giga bytes.
+#
+# *.*;auth,authpriv.none          /var/log/syslog
+# 
+- lineinfile:
+    path: /etc/rsyslog.d/50-default.conf
+    content: '#\1/syslog'
+    regexp: '(.*)/syslog$'
+  become: true
+  when: "'central-log' in group_names"
+  notify: restart rsyslog (ubuntu)
+
+
+- service:
+    name: rsyslog
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

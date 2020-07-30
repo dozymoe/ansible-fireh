@@ -1,0 +1,48 @@
+- import_tasks: ../../tinydns/tasks/facts.yml
+
+- name: setup domains
+  blockinfile:
+    path: /etc/service/tinydns/root/data
+    marker: '# {mark} {{item.name}}'
+    content: |
+      Z{{item.name}}:ns1.linode.com:{{item.soa|dns_soa}}
+      &{{item.name}}::ns1.linode.com
+      &{{item.name}}::ns2.linode.com
+      &{{item.name}}::ns3.linode.com
+      &{{item.name}}::ns4.linode.com
+      &{{item.name}}::ns5.linode.com
+      @{{item.name}}::{{item.mail}}:10
+      +{{item.name}}:{{item.ipv4}}
+      :{{item.name}}:28:{{item.ipv6|dns_ipv6}}
+      '{{item.name}}:v=spf1 mx -all
+      {% if item.mail.endswith('.' + item.name) -%}
+      '{{item.mail}}:v=spf1 a -all
+      {% endif %}
+    owner: tinydns
+    group: root
+    mode: u=rw,g=r,o=
+  notify:
+    - rebuild tinydns data ({{ansible_distribution|lower}})
+    - notify changed domains
+  become: true
+  with_items: "{{tinydns_data_domains}}"
+
+
+- name: setup hostnames
+  blockinfile:
+    path: /etc/service/tinydns/root/data
+    marker: '# {mark} {{project_name}}'
+    content: |
+      {% for item in tinydns_data_hostnames -%}
+      {% for hostname in item.subs -%}
+      +{{hostname}}.{{item.domain}}:{{item.ipv4}}
+      :{{hostname}}.{{item.domain}}:28:{{item.ipv6|dns_ipv6}}
+      {% endfor -%}
+      {% endfor %}
+    owner: tinydns
+    group: root
+    mode: u=rw,g=r,o=
+  notify:
+    - rebuild tinydns data ({{ansible_distribution|lower}})
+    - notify changed hostnames
+  become: true

@@ -1,0 +1,3 @@
+#!/bin/sh
+curl http://10.100.0.1:235/dns/certbot/add -X POST -d "domain=$CERTBOT_DOMAIN&secret=$CERTBOT_VALIDATION" --no-progress-meter
+sleep 30

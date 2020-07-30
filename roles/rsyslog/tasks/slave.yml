@@ -1,0 +1,10 @@
+- copy:
+    dest: /etc/rsyslog.d/100-slave.conf
+    content: |
+      *.*  @@127.0.0.1:514
+  become: true
+  notify: restart rsyslog ({{ansible_distribution|lower}})
+
+
+- import_tasks: stunnel-slave.yml
+  when: use_stunnel

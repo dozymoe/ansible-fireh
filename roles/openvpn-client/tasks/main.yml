@@ -1,0 +1,38 @@
+- import_tasks: ../../openvpn-server/tasks/facts.yml
+- include_tasks: "pre-{{ansible_distribution|lower}}.yml"
+
+
+- template:
+    src: openvpn.conf.j2
+    dest: /etc/openvpn/{{openvpn_name}}.conf
+  become: true
+  notify: restart openvpn ({{ansible_distribution|lower}})
+
+
+- file:
+    path: /etc/openvpn/{{openvpn_name}}
+    state: directory
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+
+
+- copy:
+    src: ../etc/shared/ssl/{{item.src}}
+    dest: /etc/openvpn/{{openvpn_name}}/{{item.dest}}
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+  notify: restart openvpn ({{ansible_distribution|lower}})
+  with_items:
+    - src: ca.crt
+      dest: ca.crt
+    - src: ta.key
+      dest: ta.key
+    - src: private/{{hostname}}.key
+      dest: client.key
+    - src: issued/{{hostname}}.crt
+      dest: client.crt
+
+
+- include_tasks: "post-{{ansible_distribution|lower}}.yml"

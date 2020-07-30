@@ -1,0 +1,49 @@
+- file:
+    path: /etc/apt/sources.list.d
+    state: directory
+  become: true
+
+- apt:
+    name: apt-transport-https
+    state: latest
+  become: true
+
+- apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+  become: true
+
+- apt_repository:
+    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ansible_distribution_release}}-pgdg main
+  ignore_errors: true
+  become: true
+
+
+- apt:
+    name:
+      - postgresql-{{postgresql_version}}
+      - libpq-dev
+      - python3-psycopg2
+    state: latest
+  become: true
+
+
+- command: /usr/lib/postgresql/{{postgresql_version}}/bin/initdb -D {{postgresql_data_dir}}
+  args:
+    creates: "{{postgresql_data_dir}}"
+  become: true
+  become_user: postgres
+
+
+- service:
+    name: postgresql
+    enabled: "{{not daemons_on_demand and not (use_pacemaker and postgresql_pacemaker)}}"
+    state: started
+  become: true
+  when: not use_pacemaker or not postgresql_pacemaker
+  ignore_errors: True
+
+- service:
+    name: postgresql
+    enabled: no
+  become: true
+  when: use_pacemaker and postgresql_pacemaker

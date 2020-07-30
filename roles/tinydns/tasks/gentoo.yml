@@ -1,0 +1,16 @@
+- name: install djbdns
+  portage:
+    name:
+      - dev-perl/Net-DNS
+      - net-dns/djbdns
+  become: true
+
+- name: upgrade djbdns
+  portage:
+    name:
+      - dev-perl/Net-DNS
+      - net-dns/djbdns
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

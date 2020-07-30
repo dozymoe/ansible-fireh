@@ -1,0 +1,147 @@
+- name: update timezone
+  copy:
+    dest: /etc/timezone
+    content: "{{timezone}}"
+  become: true
+
+
+- name: update timezone
+  file:
+    dest: /etc/localtime
+    src: /usr/share/zoneinfo/{{timezone}}
+    state: link
+    force: yes
+  become: true
+
+
+- name: emerge sync every week
+  copy:
+    dest: /etc/cron.weekly/portage
+    content: |
+      #!/bin/sh
+      /usr/bin/emerge --sync
+      /usr/bin/eix-update
+    mode: "u=rwx,g=rx,o="
+  become: true
+  when: emerge_sync
+
+- name: remove emerge sync cronjob
+  file:
+    path: /etc/cron.weekly/portage
+    state: absent
+  become: true
+  when: not emerge_sync
+
+
+- name: remove vixie-cron
+  portage:
+    name:
+      - vixie-cron
+    state: absent
+  become: true
+
+
+- name: update /etc/portage/make.conf
+  lineinfile:
+    path: /etc/portage/make.conf
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: True
+  with_items:
+    - line: USE="{{global_use_flags}}"
+      regexp: '^#?USE='
+
+    - line: MAKEOPTS="-j{{make_jobs}} -l{{max_processor_load}}"
+      regexp: '^#?MAKEOPTS='
+
+    - line: FEATURES="{% if use_distcc %}distcc distcc-pump{% endif %}"
+      regexp: '^#?FEATURES='
+
+    - line: EMERGE_DEFAULT_OPTS="--verbose --verbose-conflicts --jobs={{emerge_jobs}} --load-average={{max_processor_load}}"
+      regexp: '^#?EMERGE_DEFAULT_OPTS='
+
+
+- file:
+    path: "{{item}}"
+    state: directory
+  become: true
+  with_items:
+    - /etc/portage/package.accept_keywords
+    - /etc/portage/package.use
+
+
+- copy:
+    dest: /etc/portage/package.accept_keywords/temporary
+    content: |
+      #
+  become: true
+
+
+- portage:
+    name:
+      - sys-apps/acl
+      - sys-apps/openrc
+      - app-admin/sudo
+      - app-admin/logrotate
+      - net-misc/dhcpcd
+      - sys-process/cronie
+
+      - app-admin/xtail
+      - app-editors/vim
+      - app-misc/ranger
+      - app-misc/tmux
+      - sys-process/htop
+      - dev-python/pexpect
+  become: true
+
+- portage:
+    name:
+      - "@security"
+
+      - sys-apps/acl
+      - sys-apps/openrc
+      - app-admin/sudo
+      - app-admin/logrotate
+      - net-misc/dhcpcd
+      - sys-process/cronie
+
+      - app-admin/xtail
+      - app-editors/vim
+      - app-misc/ranger
+      - app-misc/tmux
+      - sys-process/htop
+      - dev-python/pexpect
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- lineinfile:
+    path: /etc/sudoers
+    line: "%{{sudo_unix_group}} ALL=(ALL) ALL"
+    regexp: '^#?\s*%{{sudo_unix_group}}\s+ALL=\(ALL\)\s+ALL'
+  become: true
+
+
+- copy:
+    dest: /etc/local.d/server.start
+    content: |
+      #!/bin/sh
+      {% if sys_kernel_mm_transparent_hugepage_enabled is defined %}
+      if [ -e /sys/kernel/mm/transparent/hugepage/enabled ]
+      then
+          echo {{sys_kernel_mm_transparent_hugepage_enabled}} > /sys/kernel/mm/transparent_hugepage/enabled
+      fi
+      {% endif %}
+    mode: u=rwx,g=rx,o=
+  become: true
+
+
+- service:
+    name: "{{item}}"
+    enabled: yes
+    state: started
+  become: true
+  with_items:
+    - cronie

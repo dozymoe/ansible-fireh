@@ -1,0 +1,19 @@
+- blockinfile:
+    path: /etc/stunnel/stunnel.conf
+    marker: '# {mark} rsyslog'
+    content: |
+      [rsyslog]
+      accept = 30514
+      connect = 127.0.0.1:514
+      client = no
+      #checkHost = {ssl_common_name}
+  become: true
+  notify: restart stunnel ({{ansible_distribution|lower}})
+
+
+- ufw:
+    rule: allow
+    port: 30514
+    proto: tcp
+    comment: rsyslog stunnel
+  become: true

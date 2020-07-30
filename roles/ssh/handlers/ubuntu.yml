@@ -1,0 +1,5 @@
+- name: reload ssh (ubuntu)
+  service:
+    name: ssh
+    state: reloaded
+  become: true

@@ -1,0 +1,17 @@
+- portage:
+    name: dev-db/postgresql:{{item}}
+    state: absent
+  become: true
+  with_items: "{{deprecated_postgresql}}"
+
+- file:
+    path: /etc/postgresql-{{item}}
+    state: absent
+  become: true
+  with_items: "{{deprecated_postgresql}}"
+
+- file:
+    path: /var/lib/postgresql/{{item}}
+    state: absent
+  become: true
+  with_items: "{{deprecated_postgresql}}"

@@ -1,0 +1,30 @@
+- lineinfile:
+    path: /etc/rsyslog.conf
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: true
+  notify: restart rsyslog ({{ansible_distribution|lower}})
+  with_items:
+    - line: module(load="imtcp")
+      regexp: '^#?\s*module\(load="imtcp"'
+
+    - line: input(type="imtcp" address="127.0.0.1" port="514")
+      regexp: '^#?\s*input\(type="imtcp"'
+
+
+- template:
+    dest: /etc/rsyslog.d/70-logstash.conf
+    src: templates/logstash.conf
+  become: true
+  notify: restart rsyslog ({{ansible_distribution|lower}})
+
+
+- file:
+    path: /etc/rsyslog.d/100-slave.conf
+    state: absent
+  become: true
+  notify: restart rsyslog ({{ansible_distribution|lower}})
+
+
+- import_tasks: stunnel-master.yml
+  when: use_stunnel

@@ -1,0 +1,35 @@
+- openssl_privatekey:
+    path: /etc/ssl/private/privkey.pem
+  become: true
+
+
+- copy:
+    dest: "{{postgresql_data_dir}}/server.key"
+    src: /etc/ssl/private/privkey.pem
+    remote_src: yes
+    owner: postgres
+    group: postgres
+    mode: u=r,g=,o=
+  become: true
+
+
+- openssl_csr:
+    path: "{{postgresql_data_dir}}/server.csr"
+    privatekey_path: "{{postgresql_data_dir}}/server.key"
+    common_name: "{{postgresql_hostname}}"
+    owner: postgres
+    group: postgres
+    mode: u=r,g=r,o=
+  become: true
+
+
+- openssl_certificate:
+    path: "{{postgresql_data_dir}}/server.crt"
+    csr_path: "{{postgresql_data_dir}}/server.csr"
+    privatekey_path: "{{postgresql_data_dir}}/server.key"
+    provider: selfsigned
+    owner: postgres
+    group: postgres
+    mode: u=r,g=r,o=r
+  become: true
+  notify: reload postgresql ({{ansible_distribution | lower}})

@@ -1,0 +1,56 @@
+- file:
+    path: /etc/portage/package.use/www-servers
+    state: directory
+  become: true
+
+- copy:
+    dest: /etc/portage/package.use/www-servers/nginx
+    content: |
+      www-servers/nginx  debug pcre pcre-jit
+      www-servers/nginx  nginx_modules_http_headers_more nginx_modules_http_push_stream
+      www-servers/nginx  nginx_modules_http_realip nginx_modules_http_upload_progress nginx_modules_stream_realip
+      www-servers/nginx  nginx_modules_http_flv nginx_modules_http_mp4
+      www-servers/nginx  -nginx_modules_http_memcached
+      www-servers/nginx  luajit nginx_modules_http_lua nginx_modules_http_javascript nginx_modules_stream_javascript
+      dev-libs/libpcre  jit
+  become: true
+
+
+- portage:
+    name:
+      - www-servers/nginx
+      - app-admin/apache-tools
+      - dev-python/passlib
+  become: true
+
+- portage:
+    name:
+      - www-servers/nginx
+      - app-admin/apache-tools
+      - dev-python/passlib
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- file:
+    name: "{{item}}"
+    state: directory
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=rwx,g=rwx,o=
+  become: true
+  with_items:
+    - /etc/nginx/conf.d
+    - /etc/nginx/modules-available
+    - /etc/nginx/modules-enabled
+    - /etc/nginx/sites-available
+    - /etc/nginx/sites-enabled
+
+
+- service:
+    name: nginx
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

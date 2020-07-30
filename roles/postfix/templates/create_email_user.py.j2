@@ -1,0 +1,45 @@
+#!/usr/bin/env python3
+from getpass import getpass
+from passlib.hash import argon2
+import psycopg2
+import sys
+
+conn_args = 'postgresql://%s:%s@%s:%s/%s' % (
+    '{{mta_database_user}}',
+    '{{mta_database_password}}',
+    '{{postgresql_host|default(gateway)}}',
+    '{{postgresql_port|default(5432)}}',
+    '{{mta_database_name}}',
+)
+
+email = sys.argv[1]
+password = getpass()
+
+conn = psycopg2.connect(conn_args)
+cur = conn.cursor()
+cur.execute("SELECT id FROM virtual_domains WHERE name = %s",
+        (email.split('@', 2)[1],))
+row = cur.fetchone()
+if not row:
+    print('Unkown domain for email: %s.' % email)
+    exit(1)
+
+domain_id = row[0]
+
+cur.execute("SELECT id FROM virtual_users WHERE email = %s", (email,))
+row = cur.fetchone()
+if row:
+    user_id = row[0]
+else:
+    user_id = None
+
+pwhash = argon2.hash(password)
+
+if user_id:
+    cur.execute("UPDATE virtual_users SET password=%s WHERE id=%s",
+            (pwhash, user_id))
+else:
+    cur.execute("INSERT into virtual_users(domain_id, password, email) VALUES(%s,%s,%s)",
+            (domain_id, pwhash, email))
+
+conn.commit()

@@ -1,0 +1,30 @@
+- portage:
+    name: app-admin/syslog-ng
+    state: absent
+  become: true
+
+
+- copy:
+    dest: /etc/portage/package.use/rsyslog
+    content: |
+      app-admin/rsyslog  elasticsearch normalize
+  become: true
+
+
+- portage:
+    name: app-admin/rsyslog
+  become: true
+
+- portage:
+    name: app-admin/rsyslog
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- service:
+    name: rsyslog
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

@@ -1,0 +1,4 @@
+- name: set gitolite facts
+  set_fact:
+    gitolite_unix_user: git
+    gitolite_unix_home: /var/lib/gitolite

@@ -1,0 +1,4 @@
+- apt:
+    name: mosh
+    state: latest
+  become: true

@@ -1,0 +1,9 @@
+- set_fact:
+    network_interface: "{{item}}"
+    public_ipv4: "{{ansible_host}}"
+    public_ipv6: "{{hostvars[ansible_host]['ansible_' + item]['ipv6'][0]['address']}}"
+    public_macaddr: "{{hostvars[ansible_host]['ansible_' + item].get('macaddress')}}"
+  when: hostvars[ansible_host]['ansible_' + item].get('ipv4', {}).get('address') == ansible_host
+  with_items: "{{ansible_interfaces}}"
+
+- include_tasks: "{{ansible_distribution | lower}}.yml"

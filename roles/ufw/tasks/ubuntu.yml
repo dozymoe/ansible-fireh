@@ -1,0 +1,6 @@
+- apt:
+    name:
+      - ufw
+      - fail2ban
+    state: latest
+  become: true

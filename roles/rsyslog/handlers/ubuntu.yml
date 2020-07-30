@@ -1,0 +1,5 @@
+- name: restart rsyslog (ubuntu)
+  service:
+    name: rsyslog
+    state: restarted
+  become: true

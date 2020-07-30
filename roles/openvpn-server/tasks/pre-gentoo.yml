@@ -1,0 +1,18 @@
+- portage:
+    name:
+      - net-vpn/openvpn
+  become: true
+
+- portage:
+    name:
+      - net-vpn/openvpn
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+- file:
+    src: /etc/init.d/openvpn
+    dest: /etc/init.d/openvpn.{{openvpn_name}}
+    state: link
+  become: true

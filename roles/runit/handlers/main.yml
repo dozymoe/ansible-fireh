@@ -1,0 +1,5 @@
+- name: restart runit
+  service:
+    name: runit
+    state: restarted
+  become: true

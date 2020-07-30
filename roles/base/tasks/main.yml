@@ -1,0 +1,41 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- name: update hostname
+  hostname:
+    name: "{{hostname}}"
+  become: true
+  when: hostname is defined
+
+
+- name: update /etc/hosts hostname
+  blockinfile:
+    dest: /etc/hosts
+    marker: "# {mark} hostname"
+    content: |
+      127.0.0.1 {{hostname}}
+  become: true
+  when: hostname is defined
+
+
+- import_tasks: sysadmin.yml
+  when: create_sysadmin_user|default(false)
+
+
+- copy:
+    dest: /etc/sysctl.d/server.conf
+    content: |
+      net.core.somaxconn = {{sys_net_core_somaxconn|default(128)}}
+      fs.file-max = {{sys_fs_file_max|default(65536)}}
+      vm.overcommit_memory = {{sys_vm_overcommit_memory|default(0)}}
+  become: true
+
+
+- blockinfile:
+    marker: '# {mark} server'
+    dest: /etc/security/limits.conf
+    content: |
+      *                soft    nofile          {{ulimit_n|default(65536)}}
+      *                hard    nofile          {{ulimit_n|default(65536)}}
+    insertbefore: "^#\\s+End of file"
+  become: true

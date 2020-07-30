@@ -1,0 +1,11 @@
+- apt:
+    name: openssh-server
+    state: latest
+  become: true
+
+
+- service:
+    name: ssh
+    enabled: yes
+    state: started
+  become: true

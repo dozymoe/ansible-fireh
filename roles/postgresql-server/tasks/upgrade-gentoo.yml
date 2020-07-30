@@ -1,0 +1,31 @@
+- service:
+    name: "{{item}}"
+    state: stopped
+  become: true
+  ignore_errors: true
+  with_items:
+    - postgresql-{{postgresql_old_version}}
+    - postgresql-{{postgresql_version}}
+
+- command: /etc/init.d/{{item}} stop
+  become: true
+  with_items:
+    - postgresql-{{postgresql_old_version}}
+    - postgresql-{{postgresql_version}}
+
+- service:
+    name: postgresql-{{postgresql_old_version}}
+    enabled: no
+  become: true
+  ignore_errors: true
+
+
+- command: pg_upgrade{{postgresql_version}} -U postgres -d {{postgresql_old_data_dir}} -D {{postgresql_data_dir}} -b {{postgresql_old_lib_dir}}/bin -B {{postgresql_lib_dir}}/bin
+  args:
+    chdir: "{{postgresql_home_dir}}"
+  become: true
+  become_user: postgres
+
+
+- command: eselect postgresql set {{postgresql_version}}
+  become: true

@@ -1,0 +1,46 @@
+- portage:
+    name:
+      - dev-db/postgresql:{{postgresql_version}}
+      - dev-python/psycopg
+  become: true
+
+- portage:
+    name:
+      - dev-db/postgresql:{{postgresql_version}}
+      - dev-python/psycopg:2
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- lineinfile:
+    path: /etc/conf.d/postgresql-{{postgresql_version}}
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: true
+  with_items:
+    - line: PG_INITDB_OPTS="--encoding=UTF8 --no-locale"
+      regexp: '^#?PG_INITDB_OPTS\s*='
+
+
+- command: emerge --config dev-db/postgresql:{{postgresql_version}}
+  args:
+    creates: "{{postgresql_data_dir}}/pg_hba.conf"
+  become: true
+
+
+- service:
+    name: postgresql-{{postgresql_version}}
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  when: not use_pacemaker or not postgresql_pacemaker
+  ignore_errors: true
+
+- service:
+    name: postgresql-{{postgresql_version}}
+    enabled: no
+    state: "{{'started' if postgresql_pacemaker_init else None}}"
+  become: true
+  when: use_pacemaker and postgresql_pacemaker

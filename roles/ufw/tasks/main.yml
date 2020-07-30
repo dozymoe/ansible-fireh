@@ -1,0 +1,39 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- ufw:
+    rule: allow
+    proto: tcp
+    port: "{{ansible_port | default(22)}}"
+    comment: ssh
+  become: true
+
+
+- name: Firewall default incoming policy
+  ufw:
+    direction: incoming
+    policy: reject
+  become: true
+
+
+- name: Firewall default outgoing policy
+  ufw:
+    direction: outgoing
+    policy: allow
+  become: true
+
+
+- ufw:
+    state: enabled
+  become: true
+
+
+- service:
+    name: "{{item}}"
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  ignore_errors: true
+  with_items:
+    - ufw
+    - fail2ban

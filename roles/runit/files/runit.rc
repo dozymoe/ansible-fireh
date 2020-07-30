@@ -1,0 +1,26 @@
+#!/sbin/openrc-run
+# Copyright 1999-2018 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+
+name="runit daemon"
+description="Runit Supervisor Service"
+pidfile="${PIDFILE:-/run/runit.pid}"
+
+start() {
+    ebegin "Starting runit"
+    start-stop-daemon \
+        --start \
+        --pidfile "${pidfile}" \
+        --make-pidfile \
+        --background \
+        /usr/bin/runsvdir -P /var/service
+    eend $?
+}
+
+stop() {
+    ebegin "Stopping runit"
+    start-stop-daemon \
+        --signal HUP \
+        --pidfile "${pidfile}"
+    eend $?
+}

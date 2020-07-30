@@ -1,0 +1,24 @@
+- apt:
+    name: runit
+    state: latest
+  become: true
+
+
+- file:
+    path: /var/service
+    state: directory
+  become: true
+
+
+- copy:
+    dest: /etc/systemd/system/runit.service
+    src: runit.service
+  notify: restart runit
+  become: true
+
+
+- service:
+    name: runit
+    enabled: "{{daemons_on_demand}}"
+    state: started
+  become: true

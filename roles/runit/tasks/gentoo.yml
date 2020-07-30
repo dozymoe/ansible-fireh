@@ -1,0 +1,38 @@
+- portage:
+    name: sys-process/runit
+  become: true
+
+- portage:
+    name: sys-process/runit
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- file:
+    path: /var/service/{{item}}
+    state: absent
+  become: true
+  with_items:
+    - getty-tty1
+    - getty-tty2
+    - getty-tty3
+    - getty-tty4
+    - getty-tty5
+    - getty-tty6
+
+
+- copy:
+    dest: /etc/init.d/runit
+    src: runit.rc
+    mode: u=rwx,g=rx,o=
+  notify: restart runit
+  become: true
+
+
+- service:
+    name: runit
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

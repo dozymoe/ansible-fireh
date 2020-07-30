@@ -1,0 +1,12 @@
+- blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} sysadmin"
+    content: |
+      Match User {{sysadmin_unix_user}}
+          X11Forwarding yes
+          AllowTcpForwarding yes
+          PasswordAuthentication yes
+          PubkeyAuthentication yes
+          MaxAuthTries 12
+  become: true
+  notify: reload ssh ({{ansible_distribution|lower}})

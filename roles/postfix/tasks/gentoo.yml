@@ -1,0 +1,62 @@
+- file:
+    path: /etc/portage/{{item}}
+    state: directory
+  become: true
+  with_items:
+    - package.keywords/mail-mta
+    - package.use/mail-mta
+
+- name: postfix keywords flags
+  copy:
+    dest: /etc/portage/package.keywords/mail-mta/postfix
+    content: |
+      dev-python/argon2_cffi  ~amd64
+  become: true
+
+- name: postfix USE flags
+  copy:
+    dest: /etc/portage/package.use/mail-mta/postfix
+    content: |
+      mail-mta/postfix  berkdb dovecot-sasl hardened postgres ssl
+      net-mail/dovecot  postgres ssl argon2
+  become: true
+
+
+- name: install postfix
+  portage:
+    name:
+      - mail-mta/postfix
+      - net-mail/dovecot
+      - mail-filter/opendkim
+      - mail-filter/pypolicyd-spf
+      - dev-python/argon2_cffi
+  become: true
+
+- name: upgrade postfix
+  portage:
+    name:
+      - mail-mta/postfix
+      - net-mail/dovecot
+      - mail-filter/opendkim
+      - mail-filter/pypolicyd-spf
+      - dev-python/argon2_cffi
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+  notify:
+    - restart dovecot (gentoo)
+    - restart postfix (gentoo)
+    - restart opendkim (gentoo)
+
+
+- name: install services
+  service:
+    name: "{{item}}"
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  with_items:
+    - opendkim
+    - dovecot
+    - postfix

@@ -1,0 +1,41 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+#- file:
+#    name: "{{item}}"
+#    state: directory
+#  become: true
+#  with_items:
+#    - /etc/service/users
+#    - /etc/service/users/log
+#    - /var/log/users
+#
+#
+#- copy:
+#    dest: /etc/service/users/log/run
+#    content: |
+#      #!/bin/sh
+#      exec svlogd -tt /var/log/users
+#    mode: u=rwx,g=,o=
+#  become: true
+#
+#
+#- copy:
+#    src: files/runit_users_run
+#    dest: /etc/service/users/run
+#    mode: u=rwx,g=,o=
+#  become: true
+#
+#
+#- file:
+#    dest: /var/service/users
+#    src: /etc/service/users
+#    state: link
+#  become: true
+#
+#
+#- runit:
+#    name: users
+#    service_dir: /var/service
+#    state: started
+#  become: true

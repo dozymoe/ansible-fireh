@@ -1,0 +1,33 @@
+- include_tasks: "{{ansible_distribution|lower}}.yml"
+
+
+- file:
+    path: /root/bin
+    state: directory
+  become: true
+
+
+- template:
+    src: "{{item}}.j2"
+    dest: /root/bin/{{item}}
+    mode: u=rwx,g=rx,o=
+  become: true
+  with_items:
+    - certbot-dns-auth.sh
+    - certbot-dns-cleanup.sh
+
+
+- command: >
+      certbot certonly --agree-tos --email {{letsencrypt_email}}
+      --cert-name {{letsencrypt_name}}
+      --preferred-challenges dns-01
+      --manual
+      --manual-auth-hook /root/bin/certbot-dns-auth.sh
+      --manual-cleanup-hook /root/bin/certbot-dns-cleanup.sh
+      --manual-public-ip-logging-ok
+      {% for domain in letsencrypt_domains -%}
+      -d {{domain}}
+      {% endfor %}
+  args:
+    creates: /etc/letsencrypt/renewal/{{letsencrypt_name}}.conf
+  become: true

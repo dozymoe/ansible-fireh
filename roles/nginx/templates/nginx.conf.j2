@@ -1,0 +1,92 @@
+user {{www_unix_user}} {{www_unix_group}};
+worker_processes {{www_max_process | default(1)}};
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+    worker_connections {{www_connection_pool | default(1024)}};
+    use epoll;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    #access_log {{www_access_log | default('/var/log/nginx/access_log')}};
+    error_log {{www_error_log | default('/var/log/nginx/error_log')}} {{www_error_level | default('info')}};
+
+    log_format main
+            '$remote_addr - $remote_user [$time_local] '
+            '"$request" $status $bytes_sent '
+            '"$http_referer" "$http_user_agent" '
+            '"$gzip_ratio"';
+
+    connection_pool_size 256;
+    request_pool_size 4k;
+
+    ## OWASP
+    ## Buffer Overflow Protection
+    ## Size Limits & Buffer Overflows the size may be configured based on the needs. 
+    client_body_buffer_size      {{www_client_body_buffer_size | default('100k')}};
+    client_max_body_size         {{www_client_max_body_size | default('2m')}};
+    client_header_buffer_size    {{www_client_header_buffer_size | default('16k')}};
+    large_client_header_buffers  {{www_large_client_header_buffers | default('4 16k')}};
+    ## End ##
+
+    ## OWASP
+    ## Mitigating Slow HTTP DoS Attack
+    ## Timeouts definition
+    client_body_timeout   60;
+    #client_body_timeout 10m;
+    client_header_timeout 30;
+    #client_header_timeout 10m;
+    keepalive_timeout     5 5;
+    #keepalive_timeout 75 20;
+    send_timeout          60;
+    #send_timeout 10m;
+    ## End
+
+    output_buffers 1 32k;
+    postpone_output 1460;
+    types_hash_max_size 2048;
+
+    server_tokens off;
+    ignore_invalid_headers on;
+    sendfile on;
+    tcp_nopush on;
+    tcp_nodelay on;
+
+    gzip on;
+    # gzip_vary on;
+    # gzip_proxied any;
+    gzip_comp_level 6;
+    gzip_buffers 16 8k;
+    # gzip_http_version 1.1;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript text/less;
+
+    index index.html index.htm;
+
+    include /etc/nginx/conf.d/*.conf;
+    include /etc/nginx/sites-enabled/*;
+}
+
+
+#mail {
+#       # See sample authentication script at:
+#       # http://wiki.nginx.org/ImapAuthenticateWithApachePhpScript
+#
+#       # auth_http localhost/auth.php;
+#       # pop3_capabilities "TOP" "USER";
+#       # imap_capabilities "IMAP4rev1" "UIDPLUS";
+#
+#       server {
+#               listen     localhost:110;
+#               protocol   pop3;
+#               proxy      on;
+#       }
+#
+#       server {
+#               listen     localhost:143;
+#               protocol   imap;
+#               proxy      on;
+#       }
+#}

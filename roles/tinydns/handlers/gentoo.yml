@@ -1,0 +1,30 @@
+- name: rebuild tinydns data (gentoo)
+  command: make -C /etc/service/tinydns/root
+  become: true
+
+
+- name: rebuild axfrdns data (gentoo)
+  command: make -C /etc/service/axfrdns
+  become: true
+
+
+- name: restart tinydns (gentoo)
+  runit:
+    name: "{{item}}"
+    service_dir: /var/service
+    state: restarted
+  become: true
+  with_items:
+    - tinydns
+    - tinydns6
+
+
+- name: restart axfrdns (gentoo)
+  runit:
+    name: "{{item}}"
+    service_dir: /var/service
+    state: restarted
+  become: true
+  with_items:
+    - axfrdns
+    - axfrdns6

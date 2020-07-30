@@ -1,0 +1,9 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- include_tasks: master.yml
+  when: "use_central_log and 'central-log' in group_names"
+
+
+- include_tasks: slave.yml
+  when: "use_central_log and 'central-log' not in group_names"

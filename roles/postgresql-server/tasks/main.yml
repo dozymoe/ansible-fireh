@@ -1,0 +1,124 @@
+- import_tasks: facts.yml
+- include_tasks: "pre-{{ansible_distribution|lower}}.yml"
+
+- include_tasks: upgrade-{{ansible_distribution|lower}}.yml
+  when: postgresql_old_version is defined and postgresql_old_version == postgresql_current_version|int
+
+- import_tasks: certificate-selfsign.yml
+  when: postgresql_ssl_provider == 'selfsign'
+- import_tasks: certificate-letsencrypt.yml
+  when: postgresql_ssl_provider == 'letsencrypt'
+
+- name: generate dhparam
+  command: openssl dhparam -out {{postgresql_data_dir}}/dhparam.pem 2048
+  args:
+    creates: "{{postgresql_data_dir}}/dhparam.pem"
+  become: true
+  become_user: postgres
+  notify: reload postgresql ({{ansible_distribution|lower}})
+
+- user:
+    name: postgres
+    password: "{{postgres_unix_password_crypted}}"
+  become: true
+
+
+- lineinfile:
+    path: "{{postgresql_config_dir}}/pg_hba.conf"
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: true
+  notify: reload postgresql ({{ansible_distribution|lower}})
+  with_items:
+    - line: local    all    all                    peer
+      regexp: '^#?local\s+all\s+all\s'
+
+    - line: host     all    all    127.0.0.1/32    md5
+      regexp: '^#?host\s+all\s+all\s+[\d.]+/32\s'
+
+    - line: host     all    all    ::1/128         md5
+      regexp: '^#?host\s+all\s+all\s+::1/128\s'
+
+    - line: '#local  replication     postgres                                peer'
+      regexp: '^#?local\s+replication\s+(all|postgres)\s'
+
+    - line: '#host   replication     postgres        127.0.0.1/32            md5'
+      regexp: '^#?host\s+replication\s+(all|postgres)\s+127\.0\.0\.1/32\s'
+
+    - line: '#host   replication     postgres        ::1/128                 md5'
+      regexp: '^#?host\s+replication\s+(all|postgres)\s+::1/128\s'
+
+
+- lineinfile:
+    path: "{{postgresql_config_dir}}/postgresql.conf"
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+    backrefs: yes
+  become: true
+  notify: restart postgresql ({{ansible_distribution|lower}})
+  with_items:
+    - line: "listen_addresses = '*'\\1"
+      regexp: "^#?listen_addresses\\s*=\\s*['\"][a-z0-9,.*-]+['\"](.*)"
+
+    - line: "port = {{postgresql_port}}\\1"
+      regexp: "^#?port\\s*=\\s*\\d+(.*)"
+
+    - line: "ssl = on"
+      regexp: '^#?ssl\s*='
+
+    - line: "ssl_cert_file = 'server.crt'"
+      regexp: '^#?ssl_cert_file\s*='
+
+    - line: "ssl_crl_file = ''"
+      regexp: '^#?ssl_crl_file\s*='
+
+    - line: "ssl_key_file = 'server.key'"
+      regexp: '^#?ssl_key_file\s*='
+
+    - line: "ssl_dh_params_file = 'dhparam.pem'"
+      regexp: '^#?ssl_dh_params_file\s*='
+
+    - line: "log_timezone = '{{timezone}}'\\1"
+      regexp: "^#?log_timezone\\s*=\\s*['\"][a-zA-Z/]+['\"](.*)"
+
+    - line: "timezone = '{{timezone}}'\\1"
+      regexp: "^#?timezone\\s*=\\s*['\"][a-zA-Z/]+['\"](.*)"
+
+    - line: "log_destination = 'syslog'\\1"
+      regexp: "^#?log_destination\\s*=\\s*['\"][a-z]+['\"](.*)"
+
+    - line: "#unix_socket_directories =\\1"
+      regexp: "^#?unix_socket_directories\\s*=(.*)"
+
+- import_tasks: optimize.yml
+
+
+- block:
+    - name: set postgres user database password
+      postgresql_user:
+        name: postgres
+        password: "{{postgres_database_password}}"
+
+    - blockinfile:
+        dest: "{{postgresql_home_dir}}/.pgpass"
+        mode: u=rw,g=,o=
+        marker: "# {mark} postgres password"
+        create: yes
+        content: |
+          127.0.0.1:{{postgresql_port}}:*:postgres:{{postgres_database_password}}
+  rescue:
+    - debug:
+        msg: Failed to setup postgres user database password
+  become: true
+  become_user: postgres
+
+
+- ufw:
+    rule: allow
+    port: "{{postgresql_port}}"
+    proto: tcp
+    comment: postgresql
+  become: true
+  when: postgresql_exposed or postgresql_replication
+
+- include_tasks: "post-{{ansible_distribution|lower}}.yml"

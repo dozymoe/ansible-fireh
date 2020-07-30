@@ -1,0 +1,5 @@
+- name: restart postfix (ubuntu)
+  service:
+    name: postfix
+    state: restarted
+  become: true

@@ -1,0 +1,83 @@
+#!/usr/bin/env python3
+from datetime import datetime
+import os
+import pwd
+import subprocess
+from tempfile import TemporaryDirectory
+
+selector = datetime.utcnow().strftime('%Y%m')
+if os.path.exists('/etc/opendkim/selectors/' + selector):
+    exit(0)
+
+uid = pwd.getpwnam('{{opendkim_unix_user}}').pw_uid
+gid = pwd.getpwnam('{{opendkim_unix_group}}').pw_gid
+domains = '{{mta_manage_domains|join(",")}}'.split(',')
+
+
+def read_record_file(filename):
+    with open(filename, 'r') as f:
+        content = f.readlines()
+    hostname = content[0].strip().split('\t', 2)[0]
+    value    = content[0].strip().split('(', 2)[1].strip().strip('"')
+    value   += content[1].strip().strip('"')
+    value   += content[2].strip().split(')', 2)[0].strip().strip('"')
+    return hostname, value
+
+
+def blockinfile(filename, name, text, exists=True):
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    if lines and lines[0].endswith('\r\n'):
+        EOL = '\r\n'
+    else:
+        EOL = '\n'
+    begin_mark = '# BEGIN ' + name + EOL
+    text = text + EOL
+    end_mark = '# END ' + name + EOL
+
+    try:
+        begin_pos = lines.index(begin_mark)
+    except ValueError:
+        begin_pos = len(lines)
+    try:
+        end_pos = lines.index(end_mark) + 1
+    except ValueError:
+        end_pos = len(lines)
+
+    with open(filename, 'w') as f:
+        for line in lines[:begin_pos]:
+            f.write(line)
+        if exists:
+            f.write(begin_mark)
+            f.write(text)
+            f.write(end_mark)
+        for line in lines[end_pos:]:
+            f.write(line)
+
+
+with TemporaryDirectory() as tmpdir:
+    records = []
+    for domain in domains:
+        subprocess.check_call(['opendkim-genkey', '-b', '2048', '-h',
+                'rsa-sha256', '-r', '-s', selector, '-d', domain, '-v'])
+        # process key file
+        dest = '/etc/opendkim/keys/%s.private' % domain
+        if os.path.exists(dest):
+            os.remove(dest)
+        os.rename(selector + '.private', dest)
+        os.chown(dest, uid, gid)
+        os.chmod(dest, 0o0600)
+        # process record file
+        hostname, txt_value = read_record_file(selector + '.txt')
+        os.remove(selector + '.txt')
+        txt_value = txt_value.replace('h=rsa-', 'h=')
+        records.append((hostname + '.' + domain, txt_value))
+
+    record = '\n'.join("'%s:%s" % x for x in records)
+    blockinfile('/etc/service/tinydns/root/data', 'opendkim ' + selector,
+            record)
+    subprocess.check_call(['make', '-C', '/etc/service/tinydns/root'])
+
+    # touch state
+    with open('/etc/opendkim/selectors/' + selector, 'w') as f:
+        pass

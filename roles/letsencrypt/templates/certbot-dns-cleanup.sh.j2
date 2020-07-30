@@ -1,0 +1,2 @@
+#!/bin/sh
+exec curl http://10.100.0.1:235/dns/certbot/delete -X POST -d "domain=$CERTBOT_DOMAIN" --no-progress-meter

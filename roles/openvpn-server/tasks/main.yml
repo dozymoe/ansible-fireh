@@ -1,0 +1,74 @@
+- import_tasks: facts.yml
+- include_tasks: "pre-{{ansible_distribution|lower}}.yml"
+
+
+- template:
+    src: openvpn.conf.j2
+    dest: /etc/openvpn/{{openvpn_name}}.conf
+  become: true
+  notify: restart openvpn ({{ansible_distribution|lower}})
+
+
+- file:
+    path: /etc/openvpn/{{item}}
+    state: directory
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+  with_items:
+    - "{{openvpn_name}}"
+    - clients
+
+
+- copy:
+    dest: /etc/openvpn/clients/{{item.name}}
+    content: |
+      ifconfig-push {{item.addr}} 255.255.255.0
+
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+  with_items: "{{openvpn_persist_ips}}"
+
+
+- copy:
+    dest: /etc/openvpn/ipp.txt
+    content: |
+      {% for item in openvpn_persist_ips -%}
+      {{item.name}},{{item.addr}}
+      {% endfor %}
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+  notify: restart openvpn ({{ansible_distribution|lower}})
+
+
+- copy:
+    src: ../etc/shared/ssl/{{item.src}}
+    dest: /etc/openvpn/{{openvpn_name}}/{{item.dest}}
+    owner: "{{openvpn_unix_user}}"
+    group: "{{openvpn_unix_group}}"
+  become: true
+  notify: restart openvpn ({{ansible_distribution|lower}})
+  with_items:
+    - src: ca.crt
+      dest: ca.crt
+    - src: dh.pem
+      dest: dh.pem
+    - src: ta.key
+      dest: ta.key
+    - src: private/{{hostname}}.key
+      dest: server.key
+    - src: issued/{{hostname}}.crt
+      dest: server.crt
+
+
+- ufw:
+    rule: allow
+    port: "'{{openvpn_port}}'"
+    proto: udp
+    comment: openvpn {{openvpn_name}}
+  become: true
+
+
+- include_tasks: "post-{{ansible_distribution|lower}}.yml"

@@ -1,0 +1,6 @@
+- portage:
+    name: net-misc/mosh
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

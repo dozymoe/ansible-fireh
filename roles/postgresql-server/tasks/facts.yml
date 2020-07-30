@@ -1,0 +1,32 @@
+- include_tasks: "facts-{{ansible_distribution | lower}}.yml"
+- import_tasks: facts-pacemaker.yml
+  when: use_pacemaker and postgresql_pacemaker
+
+- name: set facts when not in cluster
+  set_fact:
+    is_postgresql_master: "{{ansible_host == groups['database_server'][0]}}"
+  when: not use_pacemaker or not postgresql_pacemaker
+
+
+- name: postgresql default facts
+  set_fact:
+    postgresql_wal_level: replica
+
+
+- name: postgresql v9.5 facts
+  set_fact:
+    postgresql_wal_level: hot_standby
+  when: postgresql_version == 9.5
+
+
+- name: postgresql v9.6 facts
+  set_fact:
+    postgresql_wal_level: replica
+  when: postgresql_version == 9.6
+
+
+- name: ssl provider
+  set_fact:
+    postgresql_ssl_provider: "{{ssl_provider}}"
+    postgresql_ssl_certname: "{{ssl_certname | default(None)}}"
+  when: postgresql_ssl_provider is undefined

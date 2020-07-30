@@ -1,0 +1,15 @@
+- name: install psycopg
+  portage:
+    name:
+      - dev-python/psycopg
+  become: true
+
+
+- name: upgrade psycopg
+  portage:
+    name:
+      - dev-python/psycopg
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

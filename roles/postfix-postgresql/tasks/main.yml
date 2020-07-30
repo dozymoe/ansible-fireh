@@ -1,0 +1,53 @@
+- import_tasks: ../../postgresql-server/tasks/facts.yml
+- include_tasks: "{{ansible_distribution|lower}}.yml"
+
+
+- name: create mailserver database user
+  postgresql_user:
+    name: "{{mta_database_user}}"
+    password: "{{mta_database_password}}"
+    role_attr_flags: LOGIN
+  become: true
+  become_user: postgres
+  when: is_postgresql_master
+
+
+- name: set postgresql authentication
+  blockinfile:
+    path: "{{postgresql_config_dir}}/pg_hba.conf"
+    marker: "# {mark} mailserver"
+    content: |
+      {% for ip in groups[inv_group_mail] -%}
+      hostssl {{mta_database_name}} {{mta_database_user}} {{ip}}/32 md5
+      {% endfor -%}
+  notify: reload postgresql ({{ansible_distribution|lower}})
+  become: true
+
+
+#- name: destroy mailserver database
+#  postgresql_db:
+#    name: "{{mta_database_name}}"
+#    state: absent
+#  become: true
+#  become_user: postgres
+#  when: is_postgresql_master
+
+- name: create mailserver database
+  postgresql_db:
+    name: "{{mta_database_name}}"
+    owner: "{{mta_database_user}}"
+    encoding: UTF-8
+  become: true
+  become_user: postgres
+  when: is_postgresql_master
+
+
+- name: create tables
+  script: scripts/create_tables.py
+  args:
+    executable: /usr/bin/python3
+  environment:
+    DATABASE_NAME: "{{mta_database_name}}"
+    DATABASE_USER: "{{mta_database_user}}"
+    DATABASE_PASSWORD: "{{mta_database_password}}"
+  when: mta_postgresql_init

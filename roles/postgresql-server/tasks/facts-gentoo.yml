@@ -1,0 +1,21 @@
+- command: eselect postgresql show
+  register: command_eselect_postgresql_show
+  become: true
+
+- name: postgresql gentoo facts
+  set_fact:
+    postgresql_config_dir: /etc/postgresql-{{postgresql_version}}
+    postgresql_data_dir: /var/lib/postgresql/{{postgresql_version}}/data
+    postgresql_share_dir: /usr/share/postgresql-{{postgresql_version}}
+    postgresql_lib_dir: /usr/lib64/postgresql-{{postgresql_version}}
+    postgresql_home_dir: /var/lib/postgresql
+    postgresql_current_version: "{{command_eselect_postgresql_show.stdout}}"
+
+- name: postgresql gentoo facts
+  set_fact:
+    postgresql_old_config_dir: /etc/postgresql-{{postgresql_old_version}}
+    postgresql_old_data_dir: /var/lib/postgresql/{{postgresql_old_version}}/data
+    postgresql_old_share_dir: /usr/share/postgresql-{{postgresql_old_version}}
+    postgresql_old_lib_dir: /usr/lib64/postgresql-{{postgresql_old_version}}
+    postgresql_old_home_dir: /var/lib/postgresql
+  when: postgresql_old_version is defined

@@ -1,0 +1,18 @@
+# defines rsyslog's host and port
+
+- set_fact:
+    rsyslog_host: 127.0.0.1
+    rsyslog_port: "{{rsyslog_private_port}}"
+  when: use_stunnel
+
+
+- set_fact:
+    rsyslog_host: "{{public_ipv4}}"
+    rsyslog_port: "{{rsyslog_private_port}}"
+  when: not use_stunnel and rsyslog_exposed
+
+
+- set_fact:
+    rsyslog_host: 127.0.0.1
+    rsyslog_port: "{{rsyslog_private_port}}"
+  when: not use_stunnel and not rsyslog_exposed

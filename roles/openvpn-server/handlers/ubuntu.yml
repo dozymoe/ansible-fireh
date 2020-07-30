@@ -1,0 +1,10 @@
+- name: restart openvpn (ubuntu)
+  service:
+    name: openvpn@{{openvpn_name}}
+    state: restarted
+  become: true
+
+
+- name: reload sysctl (ubuntu)
+  command: sysctl -p /etc/sysctl.conf
+  become: true

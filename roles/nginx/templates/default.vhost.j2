@@ -1,0 +1,27 @@
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+                                                
+{% if ssl_provider == 'letsencrypt' %}
+    location /.well-known/acme-challenge {
+        root /var/www/letsencrypt;
+        try_files $uri $uri/ =404;
+    }
+{% endif %}
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl default_server;
+    listen [::]:443 ssl default_server;
+
+    ssl_certificate /etc/ssl/nginx/nginx.pem;
+    ssl_certificate_key /etc/ssl/nginx/nginx.key;
+
+    location / {
+        return 444;
+    }
+}

@@ -1,0 +1,5 @@
+- service:
+    name: openvpn.{{openvpn_name}}
+    enabled: yes
+    state: started
+  become: true

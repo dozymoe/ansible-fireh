@@ -1,0 +1,52 @@
+#!/usr/bin/env python3
+
+from os import environ, listdir, path, system
+from signal import pause, signal, SIG_DFL, SIGHUP, SIGINT, SIGTERM
+from subprocess import Popen, STDOUT
+
+# init
+users = (d for d in listdir('/home'))
+for user in users:
+    tmp_path = '/home/%s/tmp' % user
+    if path.exists(tmp_path):
+        system('rm -r "%s"' % tmp_path)
+
+        pts_path = '/home/%s/dev/pts' % user
+        if path.exists(pts_path):
+            if len(listdir(pts_path)) == 0:
+                system('mount -t devpts -o gid=tty,mode=621 none "%s"' % pts_path)
+
+# services
+services = []
+users = (d for d in listdir('/home') if path.lexists('/home/%s/service' % d))
+
+for user in users:
+    user_env = environ.copy()
+    user_env['HOME'] = '/home/' + user
+    handle = Popen(
+        [
+            'chpst',
+            '-u',
+            '{uid}:{uid}:uucp'.format(uid=user),
+            'runsvdir',
+            '/home/{uid}/service'.format(uid=user),
+        ],
+        env=user_env,
+        stderr=STDOUT,
+    )
+    services.append(handle)
+
+
+def on_shutdown(sign, frame):
+    for service in services:
+        service.send_signal(SIGHUP)
+    for service in services:
+        service.wait()
+    exit(0)
+
+
+signal(SIGINT, on_shutdown)
+signal(SIGTERM, on_shutdown)
+
+while len([s for s in services if s.returncode is None]):
+    pause()

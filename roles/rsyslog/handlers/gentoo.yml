@@ -1,0 +1,5 @@
+- name: restart rsyslog (gentoo)
+  service:
+    name: rsyslog
+    state: restarted
+  become: true

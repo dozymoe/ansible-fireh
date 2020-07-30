@@ -1,0 +1,5 @@
+- name: notify dns slaves
+  command: /usr/bin/dnsnotify.pl {{domain}} {{slave}}
+  loop: "{{tinydns_slaves}}"
+  loop_control:
+    loop_var: slave

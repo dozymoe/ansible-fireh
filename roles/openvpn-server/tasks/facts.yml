@@ -1,0 +1,6 @@
+- include_tasks: "facts-{{ansible_distribution|lower}}.yml"
+
+- set_fact:
+    openvpn_unix_user: openvpn
+    openvpn_unix_group: openvpn
+    openvpn_host: "{{groups[inv_group_openvpn][0]}}"

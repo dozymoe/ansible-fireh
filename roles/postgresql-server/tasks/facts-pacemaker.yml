@@ -1,0 +1,10 @@
+- name: get master postgresql
+  shell: |
+    crm_resource --locate --resource=msPgsql 2>/dev/null | sed -n "s/.*: \\([a-zA-Z.-]*\\) Master\$/\\1/p"
+  register: crm
+  become: true
+
+
+- name: set master postgresql
+  set_fact:
+    is_master_postgresql: "{{hostname == crm.stdout}}"

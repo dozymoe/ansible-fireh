@@ -1,0 +1,10 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- ufw:
+    rule: allow
+    direction: in
+    proto: udp
+    port: 60001:60099
+    comment: mosh
+  become: true

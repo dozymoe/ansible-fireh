@@ -1,0 +1,12 @@
+- name: restart nginx (gentoo)
+  service:
+    name: nginx
+    state: restarted
+  become: true
+
+
+- name: reload nginx (gentoo)
+  service:
+    name: nginx
+    state: reloaded
+  become: true

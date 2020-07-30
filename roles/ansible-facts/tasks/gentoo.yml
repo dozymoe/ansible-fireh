@@ -1,0 +1,6 @@
+- set_fact:
+    kibana_home: /opt/kibana
+    stunnel_unix_user: stunnel
+    sudo_unix_group: wheel
+    www_unix_group: nginx
+    www_unix_user: nginx

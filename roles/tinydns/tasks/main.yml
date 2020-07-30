@@ -1,0 +1,119 @@
+- import_tasks: facts.yml
+- include_tasks: "{{ansible_distribution|lower}}.yml"
+
+- name: create tinydns service
+  command: tinydns-conf {{tinydns_unix_user}} {{dnslog_unix_user}} /etc/service/tinydns {{public_ipv4}}
+  args:
+    creates: /etc/service/tinydns
+  become: true
+
+- name: create tinydns6 service
+  command: tinydns-conf {{tinydns_unix_user}} {{dnslog_unix_user}} /etc/service/tinydns6 {{public_ipv6}}
+  args:
+    creates: /etc/service/tinydns6
+  become: true
+
+- name: set run script
+  copy:
+    dest: /etc/service/{{item}}/run
+    content: |
+      #!/bin/sh
+      exec 2>&1
+      exec envuidgid {{tinydns_unix_user}} envdir ./env softlimit -d{{tinydns_max_memory|default('300000')}} {{tinydns_bin}}
+    owner: tinydns
+    group: root
+    mode: u=rwx,g=rx,o=
+  notify: restart tinydns ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - tinydns
+    - tinydns6
+
+- name: set tinydns6 root
+  copy:
+    dest: /etc/service/tinydns6/env/ROOT
+    content: /etc/service/tinydns/root
+  become: true
+
+
+- name: create axfrdns service
+  command: axfrdns-conf {{tinydns_unix_user}} {{dnslog_unix_user}} /etc/service/axfrdns /etc/service/tinydns {{public_ipv4}}
+  args:
+    creates: /etc/service/axfrdns
+  become: true
+
+- name: create axfrdns6 service
+  command: axfrdns-conf {{tinydns_unix_user}} {{dnslog_unix_user}} /etc/service/axfrdns6 /etc/service/tinydns {{public_ipv6}}
+  args:
+    creates: /etc/service/axfrdns6
+  become: true
+
+- name: set run script
+  copy:
+    dest: /etc/service/{{item}}/run
+    content: |
+      #!/bin/sh
+      exec 2>&1
+      exec envdir ./env sh -c '
+        exec envuidgid {{tinydns_unix_user}} softlimit -d{{tinydns_max_memory|default('300000')}} tcpserver -vDRHl0 -x /etc/service/axfrdns/tcp.cdb -- "$IP" 53 {{axfrdns_bin}}
+      '
+    owner: tinydns
+    group: root
+    mode: u=rwx,g=rx,o=
+  become: true
+  with_items:
+    - axfrdns
+    - axfrdns6
+
+
+- name: axfrdns permissions
+  copy:
+    dest: /etc/service/axfrdns/tcp
+    content: |
+      # sample line:  1.2.3.4:allow,AXFR="heaven.af.mil/3.2.1.in-addr.arpa"
+      {% for ip in tinydns_slaves -%}
+      {{ip}}:allow
+      {% endfor %}
+      :deny
+    owner: tinydns
+    group: root
+    mode: u=rw,g=r,o=
+  notify: rebuild axfrdns data ({{ansible_distribution|lower}})
+  become: true
+
+
+- name: install service
+  file:
+    dest: /var/service/{{item}}
+    src: /etc/service/{{item}}
+    state: link
+  become: true
+  with_items:
+    - tinydns
+    - tinydns6
+    - axfrdns
+    - axfrdns6
+
+
+- name: setup firewall
+  ufw:
+    rule: allow
+    port: "{{item.port}}"
+    proto: "{{item.proto}}"
+    comment: tinydns
+    state: enabled
+  become: true
+  when: use_ufw
+  with_items:
+    - port: 53
+      proto: tcp
+    - port: 53
+      proto: udp
+
+
+- name: install dnsnotify.pl
+  copy:
+    dest: /usr/bin/dnsnotify.pl
+    src: dnsnotify.pl
+    mode: u=rwx,g=rx,o=
+  become: true

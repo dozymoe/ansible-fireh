@@ -1,0 +1,22 @@
+- lineinfile:
+    path: "{{postgresql_config_dir}}/postgresql.conf"
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+    backrefs: yes
+  become: true
+  notify: restart postgresql ({{ansible_distribution|lower}})
+  with_items:
+    - line: "max_connections = {{postgresql_max_connections | default(100)}}\\1"
+      regexp: "^#?max_connections\\s*=\\s*\\d+(.*)"
+
+    - line: "shared_buffers = {{postgresql_shared_buffers | default('128MB')}}\\1"
+      regexp: "^#?shared_buffers\\s*=\\s*\\d+[a-zA-Z]+(.*)"
+
+    - line: "work_mem = {{postgresql_work_mem | default('4MB')}}\\1"
+      regexp: "^#?work_mem\\s*=\\s*\\d+[a-z-A-Z]+(.*)"
+
+    - line: "maintenance_work_mem = {{postgresql_maintenance_work_mem | default('64MB')}}\\1"
+      regexp: "^#?maintenance_work_mem\\s*=\\s*\\d+[a-zA-Z]+(.*)"
+
+    - line: "effective_cache_size = {{postgresql_effective_cache_size | default('1GB')}}\\1"
+      regexp: "^#?effective_cache_size\\s*=\\s*\\d+[a-zA-Z]+(.*)"

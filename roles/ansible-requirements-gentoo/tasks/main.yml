@@ -1,0 +1,26 @@
+- name: mount /usr/portage
+  mount:
+    path: /usr/portage
+    src: "{{portage_nfs_host}}"
+    fstype: nfs4
+    opts: noauto
+    state: mounted
+  become: true
+  when: portage_nfs_host is defined
+
+
+- name: install ansible package requirements
+  portage:
+    name:
+      - sys-apps/dmidecode
+  become: True
+
+
+- name: update ansible package requirements
+  portage:
+    name:
+      - sys-apps/dmidecode
+    state: latest
+    deep: yes
+    newuse: yes
+  become: True

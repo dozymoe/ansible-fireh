@@ -1,0 +1,5 @@
+- name: reload ssh (gentoo)
+  service:
+    name: sshd
+    state: reloaded
+  become: true

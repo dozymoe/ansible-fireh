@@ -1,0 +1,132 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+
+- file:
+    path: /etc/ssl/nginx
+    mode: u=rwx,g=rx,o=
+    state: directory
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+  become: true
+
+
+- openssl_privatekey:
+    path: /etc/ssl/private/privkey.pem
+  become: true
+
+
+- copy:
+    dest: /etc/ssl/nginx/nginx.key
+    src: /etc/ssl/private/privkey.pem
+    remote_src: yes
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=r,g=,o=
+  become: true
+
+
+- openssl_csr:
+    path: /etc/ssl/nginx/nginx.csr
+    privatekey_path: /etc/ssl/nginx/nginx.key
+    common_name: "{{hostname}}"
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=r,g=r,o=
+  become: true
+
+
+- openssl_certificate:
+    path: /etc/ssl/nginx/nginx.pem
+    csr_path: /etc/ssl/nginx/nginx.csr
+    privatekey_path: /etc/ssl/nginx/nginx.key
+    provider: selfsigned
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=r,g=r,o=r
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- template:
+    dest: /etc/nginx/sites-available/default
+    src: default.vhost.j2
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=rw,g=r,o=
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- file:
+    dest: /etc/nginx/sites-enabled/default
+    src: /etc/nginx/sites-available/default
+    state: link
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- template:
+    dest: /etc/nginx/nginx.conf
+    src: nginx.conf.j2
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=rw,g=r,o=
+    validate: '/usr/sbin/nginx -t -c %s'
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- template:
+    dest: /etc/nginx/server_ssl.conf
+    src: server_ssl.conf.j2
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=rw,g=r,o=
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- name: generate dhparam
+  command: openssl dhparam -out /etc/nginx/dhparam.pem 2048
+  args:
+    creates: /etc/nginx/dhparam.pem
+  become: true
+  notify: reload nginx ({{ansible_distribution | lower}})
+
+
+- file:
+    path: /var/www
+    owner: "{{www_unix_user}}"
+    group: "{{www_unix_group}}"
+    mode: u=rwx,g=rxs,o=
+    state: directory
+  become: true
+
+
+- file:
+    path: /var/www/letsencrypt/.well-known/acme-challenge
+    owner: root
+    group: "{{www_unix_group}}"
+    mode: u=rwx,g=xs,o=
+    state: directory
+  become: true
+  when: ssl_provider == 'letsencrypt'
+
+- copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/nginx.sh
+    content: |
+      #/bin/sh
+      /etc/init.d/nginx reload
+    mode: u=rwx,g=r,o=
+  become: true
+  when: ssl_provider == 'letsencrypt'
+
+
+- ufw:
+    rule: allow
+    port: "{{item}}"
+    proto: tcp
+  become: true
+  with_items:
+    - "80"
+    - "443"

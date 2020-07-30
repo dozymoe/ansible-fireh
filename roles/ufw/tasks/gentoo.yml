@@ -1,0 +1,15 @@
+- portage:
+    name:
+      - net-firewall/ufw
+      - net-analyzer/fail2ban
+  become: true
+
+
+- portage:
+    name:
+      - net-firewall/ufw
+      - net-analyzer/fail2ban
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

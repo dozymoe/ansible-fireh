@@ -1,3 +1,3 @@
 #!/bin/sh
-curl http://10.100.0.1:235/dns/certbot/add -X POST -d "domain=$CERTBOT_DOMAIN&secret=$CERTBOT_VALIDATION" --no-progress-meter
+curl http://{{groups[inv_group_openvpn_server][0]}}:235/dns/certbot/add -X POST -d "domain=$CERTBOT_DOMAIN&secret=$CERTBOT_VALIDATION&slave={{dns.tinydns_slaves[0]}}" --no-progress-meter
 sleep 30

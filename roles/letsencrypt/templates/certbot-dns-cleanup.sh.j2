@@ -1,2 +1,2 @@
 #!/bin/sh
-exec curl http://10.100.0.1:235/dns/certbot/delete -X POST -d "domain=$CERTBOT_DOMAIN" --no-progress-meter
+exec curl http://{{groups[inv_group_openvpn_server][0]}}:235/dns/certbot/delete -X POST -d "domain=$CERTBOT_DOMAIN&slave={{dns.tinydns_slaves[0]}}" --no-progress-meter

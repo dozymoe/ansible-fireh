@@ -1,0 +1,39 @@
+- include_tasks: "pre-{{ansible_distribution|lower}}.yml"
+
+
+- file:
+    path: /opt/odoo
+    state: directory
+  become: true
+
+
+- name: git shallow clone odoo to /opt/odoo
+  git:
+    repo: https://github.com/odoo/odoo
+    dest: /opt/odoo/{{item.odoo}}
+    version: "{{item.odoo}}.0"
+    depth: 1
+    force: yes
+    recursive: yes
+  become: true
+  with_items: "{{odoo_versions}}"
+
+
+- command: python{{item.python}} setup.py sdist
+  args:
+    chdir: /opt/odoo/{{item.odoo}}
+  become: true
+  with_items: "{{odoo_versions}}"
+
+
+- file:
+    path: /opt/odoo/{{item.odoo}}/build
+    state: absent
+  become: true
+  with_items: "{{odoo_versions}}"
+
+- file:
+    path: /opt/odoo/{{item.odoo}}/odoo.egg-info
+    state: absent
+  become: true
+  with_items: "{{odoo_versions}}"

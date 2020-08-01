@@ -1,0 +1,58 @@
+- file:
+    path: "{{item}}"
+    state: directory
+  become: true
+  with_items:
+    - /etc/portage/package.use/net-nds
+    - /etc/portage/package.use/media-gfx
+    - /etc/portage/package.keywords/media-gfx
+
+- copy:
+    dest: /etc/portage/package.use/net-nds/openldap
+    content: |
+      net-nds/openldap sasl
+  become: true
+
+
+- copy:
+    dest: /etc/portage/package.keywords/media-gfx/wkhtmltopdf
+    content: |
+      media-gfx/wkhtmltopdf ~amd64
+  become: true
+
+
+- copy:
+    dest: /etc/portage/package.use/media-gfx/wkhtmltopdf
+    content: |
+      dev-libs/libpcre2 pcre16
+      dev-libs/libxml2  icu
+      dev-qt/qtcore     icu
+      dev-qt/qtwebkit   printsupport
+  become: true
+
+
+- portage:
+    name:
+      - dev-python/virtualenv
+      - media-gfx/wkhtmltopdf
+      - net-libs/nodejs
+      - net-nds/openldap
+  become: true
+
+- portage:
+    name:
+      - dev-python/virtualenv
+      - media-gfx/wkhtmltopdf
+      - net-libs/nodejs
+      - net-nds/openldap
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- npm:
+    name: less
+    state: latest
+    global: yes
+  become: true

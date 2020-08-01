@@ -19,12 +19,6 @@
   when: postgresql_version == 9.5
 
 
-- name: postgresql v9.6 facts
-  set_fact:
-    postgresql_wal_level: replica
-  when: postgresql_version == 9.6
-
-
 - name: ssl provider
   set_fact:
     postgresql_ssl_provider: "{{ssl_provider}}"

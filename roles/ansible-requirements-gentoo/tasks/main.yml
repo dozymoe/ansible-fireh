@@ -1,12 +1,17 @@
-- name: mount /usr/portage
-  mount:
-    path: /usr/portage
-    src: "{{portage_nfs_host}}"
-    fstype: nfs4
-    opts: noauto
-    state: mounted
+- command: sed -nr 's/^PORTDIR="(.*)"/\1/p;' /etc/portage/make.conf
+  register: portdir_cmd
+
+- command: mount "{{portdir_cmd.stdout}}"
   become: true
-  when: portage_nfs_host is defined
+  ignore_errors: yes
+
+
+- command: sed -nr 's/^DISTDIR="(.*)"/\1/p;' /etc/portage/make.conf
+  register: distdir_cmd
+
+- command: mount "{{distdir_cmd.stdout}}"
+  become: true
+  ignore_errors: yes
 
 
 - name: install ansible package requirements

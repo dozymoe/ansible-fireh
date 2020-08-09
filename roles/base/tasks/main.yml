@@ -18,10 +18,6 @@
   when: hostname is defined
 
 
-- import_tasks: sysadmin.yml
-  when: create_sysadmin_user|default(false)
-
-
 - copy:
     dest: /etc/sysctl.d/server.conf
     content: |

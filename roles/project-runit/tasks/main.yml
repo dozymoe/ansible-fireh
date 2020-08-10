@@ -1,0 +1,51 @@
+- file:
+    path: "{{item}}"
+    state: directory
+  become: true
+  with_items:
+    - /etc/service/user-{{project}}/log
+    - /var/log/user-{{project}}
+
+
+- copy:
+    dest: /etc/service/user-{{project}}/run
+    content: |
+      #!/bin/sh
+      exec 2>&1
+      USERNAME="{{lookup('vars', project + '_unix_user')}}"
+      GROUPNAME="{{lookup('vars', project + '_unix_group')}}"
+      export HOME="{{lookup('vars', project + '_unix_home')}}"
+      {% if unix_groups is defined %}
+      UNIXGROUPS=":{{unix_groups|join(':')}}"
+      {% else %}
+      UNIXGROUPS=""
+      {% endif %}
+      exec chpst -u $USERNAME:$GROUPNAME$UNIXGROUPS runsvdir $HOME/service
+    mode: u=rwx,g=rx,o=x
+  become: true
+
+- copy:
+    dest: /etc/service/user-{{project}}/log/run
+    content: |
+      #!/bin/sh
+      exec svlogd -tt /var/log/user-{{project}}/
+    mode: u=rwx,g=rx,o=x
+  become: true
+
+
+- file:
+    path: "{{item}}"
+    state: directory
+  become: true
+  become_user: "{{lookup('vars', project + '_unix_user')}}"
+  with_items:
+    - "{{lookup('vars', project + '_unix_home')}}/etc/service"
+    - "{{lookup('vars', project + '_unix_home')}}/service"
+    - "{{lookup('vars', project + '_unix_home')}}/var/log"
+
+
+- file:
+    dest: /var/service/user-{{project}}
+    src: /etc/service/user-{{project}}
+    state: link
+  become: true

@@ -24,14 +24,3 @@
     mode: u=rwx,g=,o=
   become: true
   become_user: "{{lookup('vars', project + '_unix_user')}}"
-
-
-- file:
-    path: "{{item}}"
-    state: directory
-  become: true
-  become_user: "{{lookup('vars', project + '_unix_user')}}"
-  with_items:
-    - "{{lookup('vars', project + '_unix_home')}}/etc/service"
-    - "{{lookup('vars', project + '_unix_home')}}/service"
-    - "{{lookup('vars', project + '_unix_home')}}/var/log"

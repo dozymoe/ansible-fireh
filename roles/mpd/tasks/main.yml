@@ -1,0 +1,82 @@
+- include_tasks: "pre-{{ansible_distribution|lower}}.yml"
+- include_tasks: "post-{{ansible_distribution|lower}}.yml"
+
+
+- file:
+    path: "{{item}}"
+    owner: "{{music_unix_user}}"
+    group: "{{music_unix_group}}"
+    mode: u=rwx,g=rsx,o=rx
+    state: directory
+  become: true
+  with_items:
+    - "{{music_media_directory}}"
+    - "{{music_playlist_directory}}"
+    - /var/lib/mpd
+
+- file:
+    path: "{{item}}"
+    owner: "{{music_unix_user}}"
+    group: "{{music_unix_group}}"
+    state: file
+  become: true
+  ignore_errors: true
+  with_items:
+    - /var/lib/mpd/log
+    - /var/lib/mpd/pid
+    - /var/lib/mpd/socket
+    - /var/lib/mpd/state
+
+
+- lineinfile:
+    path: /etc/mpd.conf
+    line: "{{item.line}}"
+    regexp: "{{item.regex}}"
+  become: true
+  with_items:
+    - line: "music_directory    \"{{music_media_directory}}\""
+      regex: '^#?music_directory\s'
+    - line: "playlist_directory    \"{{music_playlist_directory}}\""
+      regex: '^#?playlist_directory\s'
+    - line: "db_file    \"{{music_database}}\""
+      regex: '^#?db_file\s'
+    - line: "user    \"{{music_unix_user}}\""
+      regex: '^#?user\s'
+    - line: "group    \"{{music_unix_group}}\""
+      regex: '^#?group\s'
+    - line: "bind_to_address    \"{% if music_exposed|default(False) %}{{public_ipv4}}{% else %}127.0.0.1{% endif %}\""
+      regex: '^#?bind_to_address\s'
+    - line: "port    \"{{music_port}}\""
+      regex: '^#?port\s'
+    - line: "follow_outside_symlinks    \"no\""
+      regex: '^#?follow_outside_symlinks\s'
+    - line: "follow_inside_symlinks    \"yes\""
+      regex: '^#?follow_inside_symlinks\s'
+    - line: "replaygain    \"auto\""
+      regex: '^#?replaygain\s'
+    - line: "replaygain_limit    \"yes\""
+      regex: '^#?replaygain_limit\s'
+    - line: "volume_normalization    \"yes\""
+      regex: '^#?volume_normalization\s'
+
+- ufw:
+    rule: allow
+    port: "'{{music_port}}'"
+    proto: tcp
+    delete: "{{not music_exposed|default(False)}}"
+  become: true
+
+
+- service:
+    name: alsasound
+    enabled: true
+    state: started
+    runlevel: boot
+  become: true
+
+
+- service:
+    name: mpd
+    enabled: true
+    state: started
+  become: true

@@ -1,0 +1,33 @@
+- postgresql_db:
+    name: "{{lookup('vars', app + '_database_name')}}"
+    state: absent
+  ignore_errors: true
+  become: true
+  become_user: postgres
+ 
+
+- postgresql_db:
+    name: "{{lookup('vars', app + '_database_name')}}"
+    owner: "{{lookup('vars', app + '_database_user')}}"
+    encoding: UTF-8
+  become: true
+  become_user: postgres
+
+
+- copy:
+    src: "{{app}}.sql.xz"
+    dest: /tmp/{{app}}.sql.xz
+
+- postgresql_db:
+    name: "{{lookup('vars', app + '_database_name')}}"
+    encoding: UTF-8
+    login_host: "{{postgresql_host}}"
+    port: "{{postgresql_port}}"
+    login_user: "{{lookup('vars', app + '_database_user')}}"
+    login_password: "{{lookup('vars', app + '_database_password')}}"
+    state: restore
+    target: /tmp/{{app}}.sql.xz
+
+- file:
+    path: /tmp/{{app}}.sql.xz
+    state: absent

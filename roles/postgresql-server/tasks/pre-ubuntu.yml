@@ -4,7 +4,9 @@
   become: true
 
 - apt:
-    name: apt-transport-https
+    name:
+      - apt-transport-https
+      - gpg
     state: latest
   become: true
 

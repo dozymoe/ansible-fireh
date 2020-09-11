@@ -1,0 +1,48 @@
+- import_tasks: ../../postgresql-server/tasks/facts.yml
+
+
+- postgresql_user:
+    name: "{{lookup('vars', app + '_database_user')}}"
+    password: "{{lookup('vars', app + '_database_password')}}"
+    role_attr_flags: CREATEDB,LOGIN
+  become: true
+  become_user: postgres
+  when: is_postgresql_master
+
+
+- name: database user authentication
+  blockinfile:
+    path: "{{postgresql_config_dir}}/pg_hba.conf"
+    marker: "# {mark} {{app}}"
+    content: |
+      {% for ip in groups[app] %}
+      hostssl  postgres  {{lookup('vars', app + '_database_user')}}  {{ip}}/32  md5
+      hostssl  {{lookup('vars', app + '_database_name')}}  {{lookup('vars', app + '_database_user')}}  {{ip}}/32  md5
+      {% endfor %}
+  notify: reload postgresql ({{ansible_distribution|lower}})
+  become: true
+
+
+- name: database user authentication
+  blockinfile:
+    path: "{{postgresql_config_dir}}/pg_hba.conf"
+    marker: "# {mark} gateway"
+    content: |
+      hostssl  postgres  {{lookup('vars', app + '_database_user')}}  {{postgresql_gateway_host}}/32  md5
+      hostssl  {{lookup('vars', app + '_database_name')}}  {{lookup('vars', app + '_database_user')}}  {{postgresql_gateway_host}}/32  md5
+  notify: reload postgresql ({{ansible_distribution|lower}})
+  become: true
+  when: postgresql_gateway_host is defined
+ 
+
+- postgresql_db:
+    name: "{{lookup('vars', app + '_database_name')}}"
+    owner: "{{lookup('vars', app + '_database_user')}}"
+    encoding: UTF-8
+  become: true
+  become_user: postgres
+  when: not copy_resources and is_postgresql_master
+
+
+- import_tasks: upload-database.yml
+  when: copy_resources and is_postgresql_master

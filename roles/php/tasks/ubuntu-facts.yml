@@ -1,0 +1,9 @@
+- name: php ubuntu v18.04 facts
+  set_fact:
+    php_version: 7.2
+  when: ansible_distribution_version == '18.04'
+
+- name: php ubuntu v20.04 facts
+  set_fact:
+    php_version: 7.2
+  when: ansible_distribution_version == '20.04'

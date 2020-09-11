@@ -1,0 +1,13 @@
+- portage:
+    name:
+      - mpd
+  become: true
+
+
+- portage:
+    name:
+      - mpd
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

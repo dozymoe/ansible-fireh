@@ -8,17 +8,20 @@
 
 
 - include_vars:
-    dir: group_vars/{{inv_group_dns}}
+    dir: "{{inventory_dir}}/group_vars/{{inv_group_dns}}"
     name: dns
 
 - template:
-    src: "{{item}}.j2"
-    dest: /root/bin/{{item}}
+    src: certbot-{{dns_provider}}-dns-auth.j2
+    dest: /root/bin/certbot-dns-auth
     mode: u=rwx,g=rx,o=
   become: true
-  with_items:
-    - certbot-dns-auth.sh
-    - certbot-dns-cleanup.sh
+
+- template:
+    src: certbot-{{dns_provider}}-dns-cleanup.j2
+    dest: /root/bin/certbot-dns-cleanup
+    mode: u=rwx,g=rx,o=
+  become: true
 
 
 - command: >
@@ -26,8 +29,8 @@
       --cert-name {{ssl_certname}}
       --preferred-challenges dns-01
       --manual
-      --manual-auth-hook /root/bin/certbot-dns-auth.sh
-      --manual-cleanup-hook /root/bin/certbot-dns-cleanup.sh
+      --manual-auth-hook /root/bin/certbot-dns-auth
+      --manual-cleanup-hook /root/bin/certbot-dns-cleanup
       --manual-public-ip-logging-ok
       {% for domain in letsencrypt_domains -%}
       -d {{domain}}

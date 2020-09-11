@@ -1,0 +1,13 @@
+- file:
+    path: /etc/php/fpm-php{{php_version}}/fpm.d/www.conf
+    state: absent
+  notify: reload php-fpm (gentoo)
+  become: true
+
+
+- name: php-fpm configuration
+  template:
+    dest: /etc/php/fpm-php{{php_version}}/fpm.d/{{user}}.conf
+    src: pool.conf.j2
+  notify: reload php-fpm (gentoo)
+  become: true

@@ -1,0 +1,15 @@
+#!/bin/sh
+
+AUTH="{{dns[dns_provider + '_api_username']}}:{{dns[dns_provider + '_api_secret']}}"
+HOST="{{dns[dns_provider + '_api_host']}}"
+
+curl $HOST/v4/domains/$CERTBOT_DOMAIN/records \
+    -u "$AUTH" \
+    -X POST \
+    -H 'Content-Type: application/json' \
+    --data "{\"host\":\"_acme-challenge\",\"type\":\"TXT\",\"answer\":\"$CERTBOT_VALIDATION\",\"ttl\":300}" \
+    | jq -r '.id'
+
+RET=$?
+sleep 15
+exit $RET

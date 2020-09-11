@@ -1,0 +1,11 @@
+- include_tasks: "{{ansible_distribution|lower}}.yml"
+
+- name: create needed directories
+  file:
+    path: "{{item}}"
+    state: directory
+  become: true
+  become_user: "{{lookup('vars', user + '_unix_user')}}"
+  with_items:
+    - "{{lookup('vars', user + '_unix_home')}}/var/log"
+    - "{{lookup('vars', user + '_unix_home')}}/var/php-sessions"

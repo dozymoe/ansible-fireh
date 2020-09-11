@@ -3,4 +3,4 @@
 - set_fact:
     openvpn_unix_user: openvpn
     openvpn_unix_group: openvpn
-    openvpn_host: "{{groups[inv_group_openvpn][0]}}"
+    openvpn_host: "{{groups[inv_group_openvpn_server][0]}}"

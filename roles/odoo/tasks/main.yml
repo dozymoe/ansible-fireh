@@ -10,30 +10,24 @@
 - name: git shallow clone odoo to /opt/odoo
   git:
     repo: https://github.com/odoo/odoo
-    dest: /opt/odoo/{{item.odoo}}
-    version: "{{item.odoo}}.0"
+    dest: /opt/odoo/{{odoo_version}}
+    version: "{{odoo_version}}.0"
     depth: 1
     force: yes
     recursive: yes
   become: true
-  with_items: "{{odoo_versions}}"
 
 
-- command: python{{item.python}} setup.py sdist
+- command: python{{python_version}} setup.py sdist
   args:
-    chdir: /opt/odoo/{{item.odoo}}
+    chdir: /opt/odoo/{{odoo_version}}
   become: true
-  with_items: "{{odoo_versions}}"
 
 
 - file:
-    path: /opt/odoo/{{item.odoo}}/build
+    path: "{{item}}"
     state: absent
   become: true
-  with_items: "{{odoo_versions}}"
-
-- file:
-    path: /opt/odoo/{{item.odoo}}/odoo.egg-info
-    state: absent
-  become: true
-  with_items: "{{odoo_versions}}"
+  with_items:
+    - /opt/odoo/{{odoo_version}}/build
+    - /opt/odoo/{{odoo_version}}/odoo.egg-info

@@ -1,0 +1,12 @@
+- name: restart php-fpm (gentoo)
+  service:
+    name: php-fpm
+    state: restarted
+  become: true
+
+
+- name: reload php-fpm (gentoo)
+  service:
+    name: php-fpm
+    state: reloaded
+  become: true

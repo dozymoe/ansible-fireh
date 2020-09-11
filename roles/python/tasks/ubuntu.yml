@@ -1,0 +1,15 @@
+- file:
+    path: /etc/apt/sources.list.d
+    state: directory
+  become: true
+
+- apt_repository:
+    repo: ppa:deadsnakes/ppa
+  become: true
+
+
+- apt:
+    name:
+      - python{{python_version}}
+    state: latest
+  become: true

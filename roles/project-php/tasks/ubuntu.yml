@@ -1,0 +1,13 @@
+- file:
+    path: /etc/php/{{php_version}}/fpm/pool.d/www.conf
+    state: absent
+  notify: reload php-fpm (ubuntu)
+  become: true
+
+
+- name: php-fpm configuration
+  template:
+    dest: /etc/php/{{php_version}}/fpm/pool.d/{{user}}.conf
+    src: pool.conf.j2
+  notify: reload php-fpm (ubuntu)
+  become: true

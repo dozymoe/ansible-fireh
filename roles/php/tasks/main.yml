@@ -1,0 +1,34 @@
+- import_tasks: facts.yml
+- include_tasks: "{{ansible_distribution | lower }}.yml"
+
+
+- name: get checksum
+  uri:
+    url: https://composer.github.io/installer.sig
+    method: GET
+    return_content: yes
+  register: checksum
+
+- name: download installer
+  get_url:
+    url: https://getcomposer.org/installer
+    dest: /var/cache/composer-setup.php
+    checksum: "sha384:{{checksum.content}}"
+    mode: "u=rwx,g=rx,o="
+  become: true
+
+- name: install composer
+  command: php{{php_version}} /var/cache/composer-setup.php --install-dir=/usr/bin
+  become: true
+
+
+- name: symlink /usr/bin/composer
+  file:
+    src: /usr/bin/composer.phar
+    dest: /usr/bin/composer
+    state: link
+  become: true
+
+#- name: update composer
+#  command: /usr/bin/composer self-update
+#  become: true

@@ -3,18 +3,18 @@
     state: directory
   become: true
   with_items:
-    - /etc/service/user-{{project}}/log
-    - /var/log/user-{{project}}
+    - /etc/service/user-{{user}}/log
+    - /var/log/user-{{user}}
 
 
 - copy:
-    dest: /etc/service/user-{{project}}/run
+    dest: /etc/service/user-{{user}}/run
     content: |
       #!/bin/sh
       exec 2>&1
-      USERNAME="{{lookup('vars', project + '_unix_user')}}"
-      GROUPNAME="{{lookup('vars', project + '_unix_group')}}"
-      export HOME="{{lookup('vars', project + '_unix_home')}}"
+      USERNAME="{{lookup('vars', user + '_unix_user')}}"
+      GROUPNAME="{{lookup('vars', user + '_unix_group')}}"
+      export HOME="{{lookup('vars', user + '_unix_home')}}"
       {% if unix_groups is defined %}
       UNIXGROUPS=":{{unix_groups|join(':')}}"
       {% else %}
@@ -25,10 +25,10 @@
   become: true
 
 - copy:
-    dest: /etc/service/user-{{project}}/log/run
+    dest: /etc/service/user-{{user}}/log/run
     content: |
       #!/bin/sh
-      exec svlogd -tt /var/log/user-{{project}}/
+      exec svlogd -tt /var/log/user-{{user}}/
     mode: u=rwx,g=rx,o=x
   become: true
 
@@ -37,15 +37,15 @@
     path: "{{item}}"
     state: directory
   become: true
-  become_user: "{{lookup('vars', project + '_unix_user')}}"
+  become_user: "{{lookup('vars', user + '_unix_user')}}"
   with_items:
-    - "{{lookup('vars', project + '_unix_home')}}/etc/service"
-    - "{{lookup('vars', project + '_unix_home')}}/service"
-    - "{{lookup('vars', project + '_unix_home')}}/var/log"
+    - "{{lookup('vars', user + '_unix_home')}}/etc/service"
+    - "{{lookup('vars', user + '_unix_home')}}/service"
+    - "{{lookup('vars', user + '_unix_home')}}/var/log"
 
 
 - file:
-    dest: /var/service/user-{{project}}
-    src: /etc/service/user-{{project}}
+    dest: /var/service/user-{{user}}
+    src: /etc/service/user-{{user}}
     state: link
   become: true

@@ -1,0 +1,51 @@
+- name: set php USE flags
+  copy:
+    dest: /etc/portage/package.use/php
+    content: |
+      dev-lang/php  cli fpm pdo
+      app-eselect/eselect-php  fpm
+  become: true
+
+
+- name: install php
+  portage:
+    name:
+      - dev-lang/php:{{php_version}}
+  become: true
+
+- name: upgrade php
+  portage:
+    name:
+      - dev-lang/php:{{php_version}}
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- name: setup cli php.ini
+  lineinfile:
+    path: /etc/php/cli-php{{php_version}}/php.ini
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: true
+  with_items:
+    - line: max_execution_time = 0
+      regexp: '^#?max_execution_time\s*='
+    - line: memory_limit = 2G
+      regexp: '^#?memory_limit\s*='
+
+
+- name: remove php-fpm default configuration
+  file:
+    path: /etc/php/fpm-php{{php_version}}/fpm.d/www.conf
+    state: absent
+  become: true
+
+
+- name: enable php-fpm service
+  service:
+    name: php-fpm
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

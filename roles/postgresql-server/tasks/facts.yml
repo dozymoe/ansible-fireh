@@ -21,6 +21,6 @@
 
 - name: ssl provider
   set_fact:
-    postgresql_ssl_provider: "{{ssl_provider}}"
+    postgresql_ssl_provider: "{{ssl_provider | default(None)}}"
     postgresql_ssl_certname: "{{ssl_certname | default(None)}}"
   when: postgresql_ssl_provider is undefined

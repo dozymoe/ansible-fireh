@@ -1,0 +1,24 @@
+- apt:
+    name: runit
+    state: latest
+  become: true
+
+
+- file:
+    path: /var/service
+    state: directory
+  become: true
+
+
+- lineinfile:
+    path: /etc/runit/2
+    line: SVDIR=/var/service
+    regexp: '^#?\s*SVDIR\s*='
+  become: true
+
+
+- service:
+    name: runit
+    enabled: "{{daemons_on_demand}}"
+    state: started
+  become: true

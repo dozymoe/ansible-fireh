@@ -1,26 +1,26 @@
-- name: create {{user}} unix group
+- name: create {{project}} unix group
   group:
-    name: "{{lookup('vars', user + '_unix_group')}}"
-    gid: "{{lookup('vars', user + '_unix_gid')}}"
+    name: "{{lookup('vars', project + '_unix_group')}}"
+    gid: "{{lookup('vars', project + '_unix_gid')}}"
   become: true
 
 
-- name: create {{user}} unix user
+- name: create {{project}} unix user
   user:
-    name: "{{lookup('vars', user + '_unix_user')}}"
-    password: "{{lookup('vars', user + '_unix_password_crypted')}}"
-    uid: "{{lookup('vars', user + '_unix_uid')}}"
-    group: "{{lookup('vars', user + '_unix_group')}}"
-    shell: "{{lookup('vars', user + '_login_shell', default='/bin/bash')}}"
-    home: "{{lookup('vars', user + '_unix_home')}}"
+    name: "{{lookup('vars', project + '_unix_user')}}"
+    password: "{{lookup('vars', project + '_unix_password_crypted')}}"
+    uid: "{{lookup('vars', project + '_unix_uid')}}"
+    group: "{{lookup('vars', project + '_unix_group')}}"
+    shell: "{{lookup('vars', project + '_login_shell', default='/bin/bash')}}"
+    home: "{{lookup('vars', project + '_unix_home')}}"
     create_home: yes
   become: true
   ignore_errors: true
 
 
 - file:
-    name: "{{lookup('vars', user + '_unix_home')}}/.ssh"
+    name: "{{lookup('vars', project + '_unix_home')}}/.ssh"
     state: directory
     mode: u=rwx,g=,o=
   become: true
-  become_user: "{{lookup('vars', user + '_unix_user')}}"
+  become_user: "{{lookup('vars', project + '_unix_user')}}"

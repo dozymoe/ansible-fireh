@@ -1,0 +1,35 @@
+- include_tasks: acme-{{ansible_distribution|lower}}.yml
+
+- copy:
+    dest: /etc/dovecot/{{item.dest}}
+    src: /etc/acme/certs/{{cert_name}}/{{item.src}}
+    mode: "{{item.mode}}"
+    remote_src: yes
+    owner: "{{dovecot_unix_user}}"
+    group: "{{dovecot_unix_group}}"
+  notify: reload dovecot ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - dest: server.crt
+      src: fullchain.cer
+      mode: u=rw,g=r,o=
+    - dest: server.key
+      src: "{{cert_name}}.key"
+      mode: u=rw,g=,o=
+
+- copy:
+    dest: /etc/postfix/{{item.dest}}
+    src: /etc/acme/certs/{{cert_name}}/{{item.src}}
+    mode: "{{item.mode}}"
+    remote_src: yes
+    owner: "{{postfix_unix_user}}"
+    group: "{{postfix_unix_group}}"
+  notify: reload postfix ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - dest: server.crt
+      src: fullchain.cer
+      mode: u=rw,g=r,o=
+    - dest: server.key
+      src: "{{cert_name}}.key"
+      mode: u=rw,g=,o=

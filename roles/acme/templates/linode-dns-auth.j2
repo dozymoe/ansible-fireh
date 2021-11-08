@@ -1,0 +1,101 @@
+#!/usr/bin/env python3
+
+import json
+import os
+from time import sleep
+import urllib.request
+
+API_TOKEN = r"{{lookup('vars', provider + '_api_token')}}"
+API_HOST = r"https://api.linode.com/"
+API_DOMAINS = r"{host}/v4/domains"
+API_URL = r"{host}/v4/domains/{domain_id}/records"
+
+CERTBOT_DOMAIN = os.environ['CERTBOT_DOMAIN']
+CERTBOT_REMAINING_CHALLENGES = os.environ['CERTBOT_REMAINING_CHALLENGES']
+CERTBOT_ALL_DOMAINS = os.environ['CERTBOT_ALL_DOMAINS']
+CERTBOT_VALIDATION = os.environ['CERTBOT_VALIDATION']
+
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % CERTBOT_DOMAIN)
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % CERTBOT_ALL_DOMAINS)
+SPLIT_DOMAIN = CERTBOT_DOMAIN.split('.')
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % repr(SPLIT_DOMAIN))
+SUBDOMAIN = SPLIT_DOMAIN[:-2] # keep this as list
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % repr(SUBDOMAIN))
+ZONEID = '.'.join(SPLIT_DOMAIN[-2:])
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % repr(ZONEID))
+
+
+data = {
+    'name': '.'.join(('_acme-challenge', *SUBDOMAIN)),
+    'type': 'TXT',
+    'target': CERTBOT_VALIDATION,
+    'ttl_sec': 300,
+}
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % json.dumps(data))
+
+
+exit_code = -1
+
+## Get the Domain Id required by Linode API
+
+request = urllib.request.Request(API_DOMAINS.format(host=API_HOST))
+request.add_header('authorization', 'Bearer {auth}'.format(auth=API_TOKEN))
+
+client = urllib.request.build_opener()
+page = 1
+page_total = 1
+record_found = False
+domain_id = None
+while not record_found and page <= page_total:
+    with client.open(request) as response:
+        if response.status == 200:
+            result_text = response.read().decode('utf-8')
+            result = json.loads(result_text)
+            page_total = result['pages']
+            for record in result['data']:
+                if record['domain'] == ZONEID:
+                    domain_id = record['id']
+                    record_found = True
+                    break
+        else:
+            exit_code = response.status
+    page += 1
+
+with open('/tmp/letsencrypt.txt', 'a') as f:
+    f.write('%s\n' % domain_id)
+if not record_found:
+    exit(exit_code)
+
+## Create DNS record
+
+request = urllib.request.Request(
+        API_URL.format(host=API_HOST, domain_id=domain_id),
+        data=bytes(json.dumps(data), encoding='utf-8'))
+request.add_header('content-type', 'application/json')
+request.add_header('authorization', 'Bearer {auth}'.format(auth=API_TOKEN))
+
+client = urllib.request.build_opener()
+with client.open(request) as response:
+    with open('/tmp/letsencrypt.txt', 'a') as f:
+        f.write('%s\n' % response.status)
+    if response.status == 200:
+        result_text = response.read().decode('utf-8')
+        with open('/tmp/letsencrypt.txt', 'a') as f:
+            f.write('%s\n' % result_text)
+        result = json.loads(result_text)
+
+        # Per certbot documentation, print out record id that will be use by
+        # the cleanup script.
+        print(result['id'])
+        exit_code = 0
+        sleep(40)
+    else:
+        exit_code = response.status
+
+exit(exit_code)

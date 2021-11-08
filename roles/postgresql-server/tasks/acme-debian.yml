@@ -1,0 +1,13 @@
+- copy:
+    dest: /etc/acme/renew.d/postgresql
+    content: |
+        #!/bin/sh
+        cp /etc/acme/certs/{{cert_name}}/fullchain.cer {{postgresql_data_dir}}/server.crt
+        cp /etc/acme/certs/{{cert_name}}/{{cert_name}}.key {{postgresql_data_dir}}/server.key
+        chown postgres:postgres {{postgresql_data_dir}}/server.*
+        chmod u=rw,g=r,o= {{postgresql_data_dir}}/server.crt
+        chmod u=rw,g=,o= {{postgresql_data_dir}}/server.key
+        /etc/init.d/postgresql reload
+
+    mode: u=rwx,g=rx,o=rx
+  become: true

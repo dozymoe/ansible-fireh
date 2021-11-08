@@ -1,5 +1,37 @@
+- name: reload opendkim (ubuntu)
+  service:
+    name: opendkim
+    state: reloaded
+  become: true
+
+- name: restart opendkim (ubuntu)
+  service:
+    name: opendkim
+    state: restarted
+  become: true
+
+
+- name: reload postfix (ubuntu)
+  service:
+    name: postfix
+    state: reloaded
+  become: true
+
 - name: restart postfix (ubuntu)
   service:
     name: postfix
+    state: restarted
+  become: true
+
+
+- name: reload dovecot (ubuntu)
+  service:
+    name: dovecot
+    state: reloaded
+  become: true
+
+- name: restart dovecot (ubuntu)
+  service:
+    name: dovecot
     state: restarted
   become: true

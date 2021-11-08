@@ -1,5 +1,5 @@
 user = {{mta_database_user}}
 password = {{mta_database_password}}
-hosts = {{postgreql_host|default(gateway)}}
+hosts = {{postgresql_host}}
 dbname = {{mta_database_name}}
 query = SELECT destination FROM virtual_aliases WHERE source='%s'

@@ -1,0 +1,1 @@
+- include_tasks: facts-{{ansible_distribution|lower}}.yml

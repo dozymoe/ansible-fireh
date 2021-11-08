@@ -1,4 +1,3 @@
+- import_tasks: debian.yml
 - import_tasks: gentoo.yml
 - import_tasks: ubuntu.yml
-
-- import_tasks: ../../tinydns-linode/handlers/main.yml

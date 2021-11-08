@@ -10,7 +10,7 @@
   with_items:
     - line: Port {{ansible_port | default(22)}}
       regexp: '^#?Port\s'
-    - line: PermitRootLogin no
+    - line: PermitRootLogin yes
       regexp: '^#?PermitRootLogin\s'
     - line: PasswordAuthentication no
       regexp: '^#?PasswordAuthentication\s'

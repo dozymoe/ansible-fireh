@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+
+import base64
+import os
+import urllib.request
+from time import sleep
+
+API_USER = r"{{lookup('vars', provider + '_api_username')}}"
+API_PASS = r"{{lookup('vars', provider + '_api_secret')}}"
+API_HOST = r"https://api.name.com"
+API_URL = r"{host}/v4/domains/{domain}/records/{record_id}"
+
+CERTBOT_DOMAIN = os.environ['CERTBOT_DOMAIN']
+CERTBOT_REMAINING_CHALLENGES = os.environ['CERTBOT_REMAINING_CHALLENGES']
+CERTBOT_ALL_DOMAINS = os.environ['CERTBOT_ALL_DOMAINS']
+CERTBOT_AUTH_OUTPUT = os.environ['CERTBOT_AUTH_OUTPUT']
+
+SPLIT_DOMAIN = CERTBOT_DOMAIN.split('.')
+SUBDOMAIN = SPLIT_DOMAIN[:-2] # keep this as list
+ZONEID = '.'.join(SPLIT_DOMAIN[-2:])
+
+
+exit_code = -1
+
+encoded_auth = base64.b64encode('{user}:{passwd}'.format(user=API_USER,
+        passwd=API_PASS) \
+        .encode('ascii'))\
+        .decode('ascii')
+
+print(API_URL.format(host=API_HOST, domain=ZONEID,
+        record_id=CERTBOT_AUTH_OUTPUT))
+request = urllib.request.Request(API_URL.format(host=API_HOST, domain=ZONEID,
+        record_id=CERTBOT_AUTH_OUTPUT), method='DELETE')
+request.add_header('authorization', 'Basic {auth}'.format(auth=encoded_auth))
+
+client = urllib.request.build_opener()
+with client.open(request) as response:
+    if response.status == 200:
+        exit_code = 0
+        sleep(10)
+    else:
+        exit_code = response.status
+
+exit(exit_code)
+
+##!/bin/sh
+#
+#AUTH="{{lookup('vars', provider + '_api_username')}}:{{lookup('vars', provider + '_api_secret')}}"
+#HOST="https://api.name.com"
+#
+#exec curl $HOST/v4/domains/$CERTBOT_DOMAIN/records/$CERTBOT_AUTH_OUTPUT -s \
+#    -u "$AUTH" \
+#    -X DELETE

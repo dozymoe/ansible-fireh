@@ -1,14 +1,1 @@
-- apt:
-    name:
-      - php{{php_version}}
-      - php{{php_version}}-fpm
-    state: latest
-  become: true
-
-
-- name: enable php-fpm service
-  service:
-    name: php{{php_version}}-fpm
-    enabled: "{{not daemons_on_demand}}"
-    state: started
-  become: true
+debian.yml

@@ -1,0 +1,17 @@
+- name: reload mysql (gentoo)
+  service:
+    name: mysql
+    state: reloaded
+  become: true
+
+- name: restart mysql (gentoo)
+  service:
+    name: mysql
+    state: restarted
+  become: true
+
+- name: stop mysql (gentoo)
+  service:
+    name: mysql
+    state: stopped
+  become: true

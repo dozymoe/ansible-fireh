@@ -1,0 +1,14 @@
+- apt:
+    name:
+      - nginx
+      - apache2-utils
+      - python3-passlib
+    state: latest
+  become: true
+
+
+- service:
+    name: nginx
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

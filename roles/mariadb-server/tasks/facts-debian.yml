@@ -1,0 +1,6 @@
+- name: mysql debian facts
+  set_fact:
+    mysql_config_dir: /etc/mysql
+    mysql_data_dir: /var/lib/mysql
+    mysql_share_dir: /usr/share/mysql
+    mysql_lib_dir: /usr/lib/mysql

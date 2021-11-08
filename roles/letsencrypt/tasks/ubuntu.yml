@@ -1,6 +1,0 @@
-- apt:
-    name:
-      - certbot
-      - jq
-    state: latest
-  become: true

@@ -1,0 +1,17 @@
+- name: reload mysql (ubuntu)
+  service:
+    name: mysql
+    state: restarted
+  become: true
+
+- name: restart mysql (ubuntu)
+  service:
+    name: mysql
+    state: restarted
+  become: true
+
+- name: stop mysql (ubuntu)
+  service:
+    name: mysql
+    state: stopped
+  become: true

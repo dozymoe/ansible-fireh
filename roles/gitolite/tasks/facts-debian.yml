@@ -1,0 +1,7 @@
+- name: set gitolite facts
+  set_fact:
+    git_unix_user: git
+    git_unix_uid: 111
+    git_unix_group: git
+    git_unix_gid: 116
+    git_unix_home: /var/lib/git

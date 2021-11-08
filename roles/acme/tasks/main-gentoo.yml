@@ -1,0 +1,7 @@
+- portage:
+    name:
+      - dev-vcs/git
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

@@ -1,4 +1,4 @@
-- include_tasks: "{{ansible_distribution | lower}}.yml"
+- include_tasks: main-{{ansible_distribution | lower}}.yml
 
 
 - ufw:
@@ -37,3 +37,7 @@
   with_items:
     - ufw
     - fail2ban
+
+
+- include_tasks: monit-{{ansible_distribution|lower}}.yml
+  when: use_monit

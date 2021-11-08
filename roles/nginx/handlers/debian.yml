@@ -1,0 +1,12 @@
+- name: restart nginx (debian)
+  service:
+    name: nginx
+    state: restarted
+  become: true
+
+
+- name: reload nginx (debian)
+  service:
+    name: nginx
+    state: reloaded
+  become: true

@@ -1,4 +1,4 @@
-- include_tasks: "{{ansible_distribution | lower}}.yml"
+- include_tasks: main-{{ansible_distribution | lower}}.yml
 
 
 - file:
@@ -103,23 +103,26 @@
   become: true
 
 
-- file:
-    path: /var/www/letsencrypt/.well-known/acme-challenge
-    owner: root
-    group: "{{www_unix_group}}"
-    mode: u=rwx,g=xs,o=
-    state: directory
-  become: true
-  when: ssl_provider == 'letsencrypt'
-
-- copy:
-    dest: /etc/letsencrypt/renewal-hooks/deploy/nginx.sh
-    content: |
-      #/bin/sh
-      /etc/init.d/nginx reload
-    mode: u=rwx,g=r,o=
-  become: true
-  when: ssl_provider == 'letsencrypt'
+#- block:
+#    - file:
+#        path: /var/www/letsencrypt/.well-known/acme-challenge
+#        owner: root
+#        group: "{{www_unix_group}}"
+#        mode: u=rwx,g=xs,o=
+#        state: directory
+#
+#    - file:
+#        path: /etc/letsencrypt/renewal-hooks/deploy
+#        state: directory
+#
+#    - copy:
+#        dest: /etc/letsencrypt/renewal-hooks/deploy/nginx.sh
+#        content: |
+#          #/bin/sh
+#          /etc/init.d/nginx restart
+#        mode: u=rwx,g=r,o=
+#  become: true
+#  when: ssl_provider == 'letsencrypt'
 
 
 - ufw:
@@ -130,3 +133,7 @@
   with_items:
     - "80"
     - "443"
+
+
+- include_tasks: monit-{{ansible_distribution|lower}}.yml
+  when: use_monit

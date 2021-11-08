@@ -1,0 +1,55 @@
+- apt:
+    name:
+      - gitolite3
+    state: latest
+  become: true
+
+
+- name: create {{git_unix_group}} unix group
+  group:
+    name: "{{git_unix_group}}"
+    gid: "{{git_unix_gid}}"
+  become: true
+
+
+- name: create {{git_unix_user}} unix user
+  user:
+    name: "{{git_unix_user}}"
+    password: "{{git_unix_password_crypted}}"
+    uid: "{{git_unix_uid}}"
+    group: "{{git_unix_group}}"
+    shell: /bin/sh
+    home: "{{git_unix_home}}"
+    create_home: yes
+  become: true
+  ignore_errors: true
+
+
+- file:
+    name: "{{git_unix_home}}"
+    state: directory
+    owner: "{{git_unix_user}}"
+    group: "{{git_unix_group}}"
+    mode: u=rwx,g=rx,o=
+  become: true
+
+- file:
+    name: "{{git_unix_home}}/.ssh"
+    state: directory
+    mode: u=rwx,g=,o=
+  become: true
+  become_user: "{{git_unix_user}}"
+
+- copy:
+    dest: "{{git_unix_home}}/.ssh/gitolite-admin.pub"
+    src: "{{gitolite_admin_keyfile}}"
+  become: true
+  become_user: "{{git_unix_user}}"
+
+- name: setup gitolite
+  command: gitolite setup -pk {{git_unix_home}}/.ssh/gitolite-admin.pub
+  args:
+    chdir: "{{git_unix_home}}"
+    creates: "{{git_unix_home}}/repositories"
+  become: true
+  become_user: "{{git_unix_user}}"

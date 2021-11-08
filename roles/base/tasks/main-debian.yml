@@ -1,0 +1,41 @@
+- timezone:
+    name: "{{timezone}}"
+  become: true
+
+
+- name: update cache of apt
+  apt:
+    autoremove: yes
+    autoclean: yes
+    update_cache: yes
+  ignore_errors: yes
+  become: true
+
+
+- apt:
+    name:
+      - acl
+      - net-tools
+      - xtail
+      - vim
+      - ranger
+      - rsync
+      - tmux
+      - htop
+    state: latest
+  become: true
+
+
+- blockinfile:
+    marker: '# {mark} server'
+    path: /etc/rc.local
+    content: |
+      {% if sys_kernel_mm_transparent_hugepage_enabled is defined %}
+      if [ -e /sys/kernel/mm/transparent/hugepage/enabled ]
+      then
+          echo {{sys_kernel_mm_transparent_hugepage_enabled}} > /sys/kernel/mm/transparent_hugepage/enabled
+      fi
+      {% endif %}
+    insertbefore: '^exit 0'
+    create: yes
+  become: true

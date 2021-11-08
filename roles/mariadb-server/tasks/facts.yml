@@ -1,0 +1,7 @@
+- include_tasks: "facts-{{ansible_distribution | lower}}.yml"
+
+- name: ssl provider
+  set_fact:
+    mysql_ssl_provider: "{{ssl_provider | default(None)}}"
+    mysql_ssl_certname: "{{ssl_certname | default(None)}}"
+  when: mysql_ssl_provider is undefined

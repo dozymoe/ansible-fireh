@@ -36,13 +36,6 @@
       regexp: '^#?memory_limit\s*='
 
 
-- name: remove php-fpm default configuration
-  file:
-    path: /etc/php/fpm-php{{php_version}}/fpm.d/www.conf
-    state: absent
-  become: true
-
-
 - name: enable php-fpm service
   service:
     name: php-fpm

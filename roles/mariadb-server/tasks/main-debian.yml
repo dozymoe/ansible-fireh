@@ -1,0 +1,7 @@
+- name: install mariadb
+  apt:
+    name:
+      - python3-pymysql
+      - mariadb-server
+    state: latest
+  become: true

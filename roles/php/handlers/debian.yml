@@ -1,0 +1,12 @@
+- name: restart php-fpm (debian)
+  service:
+    name: php{{php_version}}-fpm
+    state: restarted
+  become: true
+
+
+- name: reload php-fpm (debian)
+  service:
+    name: php{{php_version}}-fpm
+    state: reloaded
+  become: true

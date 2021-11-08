@@ -1,0 +1,15 @@
+- apt:
+    name:
+      - lexicon
+      - opendkim
+    state: latest
+  become: true
+
+
+- name: install services
+  service:
+    name: opendkim
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  ignore_errors: yes

@@ -1,0 +1,6 @@
+- import_tasks: ../../monit/handlers/main.yml
+
+- name: reload ufw
+  ufw:
+    state: reloaded
+  become: true

@@ -1,0 +1,10 @@
+- name: php debian v11 facts
+  set_fact:
+    php_version: 7.4
+  when: ansible_distribution_version == '11'
+
+- set_fact:
+    php_cli_ini: /etc/php/{{php_version}}/cli/php.ini
+    php_fpm_ini: /etc/php/{{php_version}}/fpm/php.ini
+    php_fpm_conf: /etc/php/{{php_version}}/fpm/php-fpm.conf
+    php_fpm_pool_dir: /etc/php/{{php_version}}/fpm/pool.d

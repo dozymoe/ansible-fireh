@@ -1,128 +1,8 @@
-- include_tasks: "{{ansible_distribution|lower}}.yml"
+- import_tasks: facts.yml
+- include_tasks: main-{{ansible_distribution|lower}}.yml
 
-
-- name: add mail-server to /etc/hosts
-  blockinfile:
-    marker: '# {mark} mail-server'
-    dest: /etc/hosts
-    content: |
-      {{public_ipv4}}  {{mta_hostname}}
-      {{public_ipv6}}  {{mta_hostname}}
-  become: true
-
-
-- name: configure opendkim
-  lineinfile:
-    path: /etc/opendkim/opendkim.conf
-    line: "{{item.line}}"
-    regexp: "{{item.regex}}"
-    backrefs: yes
-  become: true
-  notify: restart opendkim ({{ansible_distribution|lower}})
-  with_items:
-    - line: "#Domain \\1"
-      regex: '^#?Domain\s(.*)'
-    - line: "#Selector \\1"
-      regex: '^#?Selector\s(.*)'
-    - line: "#KeyFile \\1"
-      regex: '^#?KeyFile\s(.*)'
-
-- name: configure opendkim
-  lineinfile:
-    path: /etc/opendkim/opendkim.conf
-    line: "{{item.line}}"
-    regexp: "{{item.regex}}"
-    mode: u=rw,go=r
-  become: true
-  notify: restart opendkim ({{ansible_distribution|lower}})
-  with_items:
-    - line: "Socket  unix:/run/opendkim/opendkim.sock"
-      regex: '^#?Socket\s'
-
-    - line: "ReportAddress  {{mta_certificate.email}}"
-      regex: '^#?ReportAddress\s'
-
-    - line: "PidFile /run/opendkim/opendkim.pid"
-      regex: '^#?PidFile\s'
-
-    - line: "KeyTable refile:/etc/opendkim/key.table"
-      regex: '^#?KeyTable\s'
-
-    - line: "SigningTable refile:/etc/opendkim/signing.table"
-      regex: '^#?SigningTable\s'
-
-    - line: "ExternalIgnoreList refile:/etc/opendkim/trusted.hosts"
-      regex: '^#?ExternalIgnoreList\s'
-
-    - line: "InternalHosts refile:/etc/opendkim/trusted.hosts"
-      regex: '^#?InternalHosts\s'
-
-    - line: "UMask 002"
-      regex: '^#?UMask\s'
-
-    - line: "OversignHeaders From"
-      regex: '^#?OversignHeaders\s'
-
-
-- name: opendkim trusted hosts
-  copy:
-    dest: /etc/opendkim/trusted.hosts
-    content: |
-      127.0.0.1
-      ::1
-      localhost
-      {{hostname}}
-      {{public_ipv4}}
-      {{public_ipv6}}
-      {% for domain in mta_manage_domains -%}
-      {{domain}}
-      {% endfor %}
-    owner: "{{opendkim_unix_user}}"
-    group: "{{opendkim_unix_group}}"
-  become: true
-  notify: restart opendkim ({{ansible_distribution|lower}})
-
-
-- name: opendkim signin table
-  copy:
-    dest: /etc/opendkim/signing.table
-    content: |
-      {% for domain in mta_manage_domains -%}
-      *@{{domain}} {{domain}}
-      {% endfor %}
-    owner: "{{opendkim_unix_user}}"
-    group: "{{opendkim_unix_group}}"
-  become: true
-  notify: restart opendkim ({{ansible_distribution|lower}})
-
-
-- name: opendkim data files
-  file:
-    path: "{{item.path}}"
-    state: directory
-    owner: "{{opendkim_unix_user}}"
-    group: "{{opendkim_unix_group}}"
-    mode: "{{item.mode}}"
-  become: true
-  with_items:
-    - path: /etc/opendkim
-      mode: u=rwx,go=rx
-    - path: /etc/opendkim/keys
-      mode: u=rwx,go=
-    - path: /etc/opendkim/selectors
-      mode: u=rwx,go=rx
-
-
-- name: generate opendkim keys cron
-  template:
-    dest: /etc/cron.monthly/opendkim-keys.py
-    src: opendkim-keys.py.j2
-    mode: u=rwx,g=,o=
-  become: true
-
-- name: generate opendkim keys
-  command: /etc/cron.monthly/opendkim-keys.py
-  become: true
+- import_tasks: opendkim.yml
+- import_tasks: dovecot.yml
 
 
 - name: add postfix to opendkim group
@@ -133,20 +13,6 @@
   become: true
 
 
-- name: configure dns
-  blockinfile:
-    marker: '# {mark} opendkim'
-    dest: /etc/service/tinydns/root/data
-    content: |
-      {% for domain in tinydns_manage_domains -%}
-      {% if domain.name in mta_manage_domains -%}
-      :_adsp._domainkey.{{domain.name}}:16:\010dkim=all
-      {% endif -%}
-      {% endfor %}
-  become: true
-  notify: rebuild tinydns data ({{ansible_distribution|lower}})
-
-
 - name: configure main.cf
   lineinfile:
     dest: /etc/postfix/main.cf
@@ -155,19 +21,22 @@
   become: true
   notify: restart postfix ({{ansible_distribution|lower}})
   with_items:
-    - line: "myhostname = {{mta_hostname}}"
+    - line: "myhostname = {{hostname}}"
       regex: '^#?myhostname\s*='
 
-    - line: "myorigin = {{hostname}}"
+    # Outbound emails from this vps will get @myorigin, it defaults to
+    # myhostname which could be a subdomain, so @mail.example.com, but you
+    # wanted your sender to be @example.com
+    - line: "myorigin = {{mta_domain}}"
       regex: '^#?myorigin\s*='
 
     - line: "mydestination = localhost"
       regex: '^#?mydestination\s*='
 
-    - line: "smtpd_tls_cert_file = /etc/letsencrypt/live/{{letsencrypt_domains[0]}}/fullchain.pem"
+    - line: "smtpd_tls_cert_file = /etc/postfix/server.crt"
       regex: '^#?smtpd_tls_cert_file\s*='
 
-    - line: "smtpd_tls_key_file = /etc/letsencrypt/live/{{letsencrypt_domains[0]}}/privkey.pem"
+    - line: "smtpd_tls_key_file = /etc/postfix/server.key"
       regex: '^#?smtpd_tls_key_file\s*='
 
     - line: "smtpd_use_tls = yes"
@@ -265,16 +134,18 @@
     - virtual-email2email
 
 
-- name: allowed emails per login
-  copy:
-    dest: /etc/postfix/controlled_envelope_senders
-    content: |
-      webmaster@onezone.shop  webmaster@onezone.shop, noreply@onezone.shop
-    owner: root
-    group: postfix
-    mode: o=
-  notify: restart postfix ({{ansible_distribution|lower}})
-  become: true
+#- name: allowed emails per login
+#  copy:
+#    dest: /etc/postfix/controlled_envelope_senders
+#    content: |
+#        {% for domain in mta_managed_domains %}
+#        webmaster@onezone.shop  webmaster@onezone.shop, noreply@onezone.shop
+#        {% endfor %}
+#    owner: root
+#    group: postfix
+#    mode: o=
+#  notify: restart postfix ({{ansible_distribution|lower}})
+#  become: true
 
 
 - name: /etc/postfix permissions
@@ -287,98 +158,25 @@
   become: true
 
 
-- name: set mail admin user
-  lineinfile:
-    path: /etc/mail/aliases
-    line: "root:               {{mta_admin_unix_user}}"
-    regexp: '^#?\s*root:'
-  become: true
+#- name: set mail admin user
+#  lineinfile:
+#    path: /etc/mail/aliases
+#    line: "root:               postmaster@{{hostname}}"
+#    regexp: '^#?\s*root:'
+#    create: yes
+#  become: true
 
 - name: compile aliases db
   command: newaliases
   become: true
 
 
-- name: setup dovecot dhparams
-  command: openssl dhparam -out /etc/dovecot/dh.pem 4096
-  args:
-    creates: /etc/dovecot/dh.pem
-  become: true
-  notify: restart dovecot ({{ansible_distribution|lower}})
-
-
-- name: configure dovecot.conf
-  lineinfile:
-    path: /etc/dovecot/dovecot.conf
-    line: "{{item.line}}"
-    regexp: "{{item.regex}}"
-  notify: restart dovecot ({{ansible_distribution|lower}})
-  become: true
-  with_items:
-    - line: protocols = imap pop3 lmtp
-      regex: '^#?protocols\s*='
-
-
-- name: configure dovecot
-  template:
-    dest: "{{item.dest}}"
-    src: "{{item.src}}"
-    owner: "{{mta_unix_user}}"
-    group: dovecot
-    mode: o=
-  notify: restart dovecot ({{ansible_distribution|lower}})
-  become: true
-  with_items:
-    - dest: /etc/dovecot/conf.d/10-auth.conf
-      src: 10-auth.conf.j2
-    - dest: /etc/dovecot/conf.d/10-mail.conf
-      src: 10-mail.conf.j2
-    - dest: /etc/dovecot/conf.d/10-master.conf
-      src: 10-master.conf.j2
-    - dest: /etc/dovecot/conf.d/10-ssl.conf
-      src: 10-ssl.conf.j2
-    - dest: /etc/dovecot/conf.d/auth-sql.conf.ext
-      src: auth-sql.conf.ext.j2
-    - dest: /etc/dovecot/dovecot-sql.conf.ext
-      src: dovecot-sql.conf.ext.j2
-
-
-- name: /etc/dovecot permissions
-  file:
-    path: /etc/dovecot
-    owner: "{{mta_unix_user}}"
-    group: dovecot
-    mode: o=
-    state: directory
-  become: true
-
-
-- name: create vhost directories
-  file:
-    path: "{{mta_unix_home}}/vhosts/{{item}}"
-    state: directory
-    owner: "{{mta_unix_user}}"
-    group: "{{mta_unix_group}}"
-    mode: o=
-  become: true
-  with_items: "{{mta_manage_domains}}"
-
-
-- name: helper scripts
-  template:
-    dest: /root/{{item}}
-    src: "{{item}}.j2"
-    mode: u=rwx,g=rx
-  become: true
-  with_items:
-    - create_email_user.py
-
-
 - name: firewall
   ufw:
     rule: allow
     port: "{{item}}"
-    comment: mailserver
+    proto: tcp
+    comment: postfix
   become: true
   when: use_ufw
   with_items:

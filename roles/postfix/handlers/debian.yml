@@ -1,0 +1,37 @@
+- name: reload opendkim (debian)
+  service:
+    name: opendkim
+    state: reloaded
+  become: true
+
+- name: restart opendkim (debian)
+  service:
+    name: opendkim
+    state: restarted
+  become: true
+
+
+- name: reload postfix (debian)
+  service:
+    name: postfix
+    state: reloaded
+  become: true
+
+- name: restart postfix (debian)
+  service:
+    name: postfix
+    state: restarted
+  become: true
+
+
+- name: reload dovecot (debian)
+  service:
+    name: dovecot
+    state: reloaded
+  become: true
+
+- name: restart dovecot (debian)
+  service:
+    name: dovecot
+    state: restarted
+  become: true

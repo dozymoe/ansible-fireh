@@ -1,0 +1,43 @@
+- import_tasks: facts.yml
+- include_tasks: main-{{ansible_distribution | lower }}.yml
+
+- import_tasks: set_mysql_password.yml
+
+- import_tasks: acme.yml
+  when: mysql_ssl_provider == 'letsencrypt'
+
+- lineinfile:
+    path: "{{mysql_config_dir}}/mariadb.conf.d/50-server.cnf"
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+    backrefs: yes
+  become: true
+  notify: restart mysql ({{ansible_distribution|lower}})
+  with_items:
+    - line: "bind-address = 0.0.0.0"
+      regexp: '^#?bind-address\s*='
+      insertafter: '^\[mysqld\]'
+
+    - line: "port = {{mysql_port}}"
+      regexp: '^#?port\s*='
+      insertafter: '^\[mysqld\]'
+
+    - line: "ssl-key = {{mysql_config_dir}}/server.key"
+      regexp: '^#?ssl-key\s*='
+      insertafter: '^\[mysqld\]'
+
+    - line: "ssl-cert = {{mysql_config_dir}}/server.crt"
+      regexp: '^#?ssl-cert\s*='
+      insertafter: '^\[mysqld\]'
+
+- ufw:
+    rule: allow
+    port: "{{mysql_port}}"
+    proto: tcp
+    comment: mysql
+  become: true
+  when: mysql_exposed or mysql_replication
+
+
+- include_tasks: monit-{{ansible_distribution|lower}}.yml
+  when: use_monit

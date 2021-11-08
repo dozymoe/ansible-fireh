@@ -1,9 +1,13 @@
 - portage:
-    name: sys-process/runit
+    name:
+      - sys-process/daemontools
+      - sys-process/runit
   become: true
 
 - portage:
-    name: sys-process/runit
+    name:
+      - sys-process/daemontools
+      - sys-process/runit
     state: latest
     deep: yes
     newuse: yes

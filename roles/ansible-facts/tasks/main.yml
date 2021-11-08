@@ -6,4 +6,4 @@
   when: hostvars[ansible_host]['ansible_' + item].get('ipv4', {}).get('address') == ansible_host
   with_items: "{{ansible_interfaces}}"
 
-- include_tasks: "{{ansible_distribution | lower}}.yml"
+- include_tasks: main-{{ansible_distribution | lower}}.yml

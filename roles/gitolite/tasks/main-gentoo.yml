@@ -1,0 +1,35 @@
+- name: install gitolite
+  portage:
+    name:
+      - gitolite
+  become: true
+
+- name: update gitolite
+  portage:
+    name:
+      - gitolite
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+- file:
+    name: "{{git_unix_home}}/.ssh"
+    state: directory
+    mode: u=rwx,g=,o=
+  become: true
+  become_user: "{{git_unix_user}}"
+
+- copy:
+    dest: "{{git_unix_home}}/.ssh/gitolite-admin.pub"
+    src: "{{gitolite_admin_keyfile}}"
+  become: true
+  become_user: "{{git_unix_user}}"
+
+- name: setup gitolite
+  command: gitolite setup -pk {{git_unix_home}}/.ssh/gitolite-admin.pub
+  args:
+    chdir: "{{git_unix_home}}"
+    creates: "{{git_unix_home}}/repositories"
+  become: true
+  become_user: "{{git_unix_user}}"

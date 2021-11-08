@@ -1,9 +1,21 @@
+- name: reload opendkim (gentoo)
+  service:
+    name: opendkim
+    state: reloaded
+  become: true
+
+- name: restart opendkim (gentoo)
+  service:
+    name: opendkim
+    state: restarted
+  become: true
+
+
 - name: reload postfix (gentoo)
   service:
     name: postfix
     state: reloaded
   become: true
-
 
 - name: restart postfix (gentoo)
   service:
@@ -18,16 +30,8 @@
     state: reloaded
   become: true
 
-
 - name: restart dovecot (gentoo)
   service:
     name: dovecot
-    state: restarted
-  become: true
-
-
-- name: restart opendkim (gentoo)
-  service:
-    name: opendkim
     state: restarted
   become: true

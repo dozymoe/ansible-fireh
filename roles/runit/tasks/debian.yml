@@ -1,5 +1,7 @@
 - apt:
-    name: runit
+    name:
+      - daemontools
+      - runit
     state: latest
   become: true
 

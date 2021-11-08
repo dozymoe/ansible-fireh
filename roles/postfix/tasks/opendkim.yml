@@ -1,0 +1,150 @@
+- include_tasks: opendkim-{{ansible_distribution|lower}}.yml
+
+
+- name: add mail-server to /etc/hosts
+  blockinfile:
+    marker: '# {mark} opendkim'
+    dest: /etc/hosts
+    content: |
+      {{ipv4}}  {{mta_hostname}}
+      {{ipv6}}  {{mta_hostname}}
+  become: true
+
+
+- name: configure opendkim
+  lineinfile:
+    path: "{{opendkim_config_file}}"
+    line: "{{item.line}}"
+    regexp: "{{item.regex}}"
+    backrefs: yes
+  notify: restart opendkim ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - line: "#Domain \\1"
+      regex: '^#?Domain\s(.*)'
+    - line: "#Selector \\1"
+      regex: '^#?Selector\s(.*)'
+    - line: "#KeyFile \\1"
+      regex: '^#?KeyFile\s(.*)'
+
+- name: configure opendkim
+  lineinfile:
+    path: "{{opendkim_config_file}}"
+    line: "{{item.line}}"
+    regexp: "{{item.regex}}"
+    mode: u=rw,go=r
+  notify: restart opendkim ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - line: "Socket  local:/run/opendkim/opendkim.sock"
+      regex: '^#?Socket\s'
+
+    - line: "ReportAddress  {{mta_mail_from}}"
+      regex: '^#?ReportAddress\s'
+
+    - line: "PidFile /run/opendkim/opendkim.pid"
+      regex: '^#?PidFile\s'
+
+    - line: "KeyTable refile:/etc/opendkim/key.table"
+      regex: '^#?KeyTable\s'
+
+    - line: "SigningTable refile:/etc/opendkim/signing.table"
+      regex: '^#?SigningTable\s'
+
+    - line: "ExternalIgnoreList refile:/etc/opendkim/trusted.hosts"
+      regex: '^#?ExternalIgnoreList\s'
+
+    - line: "InternalHosts refile:/etc/opendkim/trusted.hosts"
+      regex: '^#?InternalHosts\s'
+
+    - line: "UMask 002"
+      regex: '^#?UMask\s'
+
+    - line: "OversignHeaders From"
+      regex: '^#?OversignHeaders\s'
+
+
+- name: opendkim trusted hosts
+  copy:
+    dest: /etc/opendkim/trusted.hosts
+    content: |
+        127.0.0.1
+        ::1
+        localhost
+        {{hostname}}
+        {{ipv4}}
+        {{ipv6}}
+        {% for domain in mta_managed_domains -%}
+        {{domain}}
+        {% endfor %}
+
+    owner: "{{opendkim_unix_user}}"
+    group: "{{opendkim_unix_group}}"
+  notify: restart opendkim ({{ansible_distribution|lower}})
+  become: true
+
+
+- name: opendkim signin table
+  copy:
+    dest: /etc/opendkim/signing.table
+    content: |
+        {% for domain in mta_managed_domains -%}
+        *@{{domain}} {{domain}}
+        {% endfor %}
+    owner: "{{opendkim_unix_user}}"
+    group: "{{opendkim_unix_group}}"
+  become: true
+  notify: restart opendkim ({{ansible_distribution|lower}})
+
+
+- file:
+    path: /etc/opendkim/key.table
+    owner: "{{opendkim_unix_user}}"
+    group: "{{opendkim_unix_group}}"
+    state: touch
+  become: true
+
+
+- name: opendkim data files
+  file:
+    path: "{{item.path}}"
+    state: directory
+    owner: "{{opendkim_unix_user}}"
+    group: "{{opendkim_unix_group}}"
+    mode: "{{item.mode}}"
+  become: true
+  with_items:
+    - path: /etc/opendkim
+      mode: u=rwx,go=rx
+    - path: /etc/opendkim/keys
+      mode: u=rwx,go=
+    - path: /etc/opendkim/selectors
+      mode: u=rwx,go=rx
+
+
+- name: install lexicon provider namecom
+  copy:
+    dest: "{{python3_packages_dir}}/lexicon/providers/namecom.py"
+    src: lexicon_provider_namecom.py
+    force: no
+  become: true
+
+- name: generate opendkim keys cron
+  template:
+    dest: /etc/cron.monthly/opendkim-keys
+    src: opendkim-keys.py.j2
+    mode: u=rwx,g=,o=
+  become: true
+
+- name: generate opendkim keys
+  command: /etc/cron.monthly/opendkim-keys
+  become: true
+
+
+- name: configure dns
+  command: >
+      lexicon {{managed_domains[item].lexicon_provider}} create {{item}} TXT
+      --name="_adsp._domainkey.{{item}}." --content="dkim=all"
+  environment: "{{managed_domains[item].environment}}"
+  become: true
+  with_items: "{{mta_managed_domains}}"

@@ -1,34 +1,57 @@
 - import_tasks: facts.yml
 - include_tasks: "{{ansible_distribution | lower }}.yml"
 
+- name: check default php-fpm pool
+  stat:
+    path: "{{php_fpm_pool_dir}}/www.conf"
+  register: has_default_pool
 
-- name: get checksum
-  uri:
-    url: https://composer.github.io/installer.sig
-    method: GET
-    return_content: yes
-  register: checksum
+- block:
+    - name: remove php-fpm default configuration
+      copy:
+        dest: "{{php_fpm_pool_dir}}/www.conf.disabled"
+        src: "{{php_fpm_pool_dir}}/www.conf"
+        remote_src: yes
 
-- name: download installer
-  get_url:
-    url: https://getcomposer.org/installer
-    dest: /var/cache/composer-setup.php
-    checksum: "sha384:{{checksum.content}}"
-    mode: "u=rwx,g=rx,o="
+    - file:
+        path: "{{php_fpm_pool_dir}}/www.conf"
+        state: absent
   become: true
+  when: has_default_pool.stat.exists
 
-- name: install composer
-  command: php{{php_version}} /var/cache/composer-setup.php --install-dir=/usr/bin
+
+- name: check composer
+  stat:
+    path: /usr/bin/composer
+  register: has_composer
+
+- block:
+    - name: get checksum
+      uri:
+        url: https://composer.github.io/installer.sig
+        method: GET
+        return_content: yes
+      register: checksum
+
+    - name: download installer
+      get_url:
+        url: https://getcomposer.org/installer
+        dest: /var/cache/composer-setup.php
+        checksum: "sha384:{{checksum.content}}"
+        mode: "u=rwx,g=rx,o="
+
+    - name: install composer
+      command: php{{php_version}} /var/cache/composer-setup.php --install-dir=/usr/bin
+
+    - name: symlink /usr/bin/composer
+      file:
+        src: /usr/bin/composer.phar
+        dest: /usr/bin/composer
+        state: link
+
   become: true
+  when: not has_composer.stat.exists
 
-
-- name: symlink /usr/bin/composer
-  file:
-    src: /usr/bin/composer.phar
-    dest: /usr/bin/composer
-    state: link
+- name: update composer
+  command: /usr/bin/composer self-update
   become: true
-
-#- name: update composer
-#  command: /usr/bin/composer self-update
-#  become: true

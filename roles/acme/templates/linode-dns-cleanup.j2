@@ -1,0 +1,71 @@
+#!/usr/bin/env python3
+
+import json
+import os
+from time import sleep
+import urllib.request
+
+API_TOKEN = r"{{lookup('vars', provider + '_api_token')}}"
+API_HOST = r"https://api.linode.com/"
+API_DOMAINS = r"{host}/v4/domains"
+API_URL = r"{host}/v4/domains/{domain_id}/records/{record_id}"
+
+CERTBOT_DOMAIN = os.environ['CERTBOT_DOMAIN']
+CERTBOT_REMAINING_CHALLENGES = os.environ['CERTBOT_REMAINING_CHALLENGES']
+CERTBOT_ALL_DOMAINS = os.environ['CERTBOT_ALL_DOMAINS']
+CERTBOT_AUTH_OUTPUT = os.environ['CERTBOT_AUTH_OUTPUT']
+
+SPLIT_DOMAIN = CERTBOT_DOMAIN.split('.')
+SUBDOMAIN = SPLIT_DOMAIN[:-2] # keep this as list
+ZONEID = '.'.join(SPLIT_DOMAIN[-2:])
+
+
+exit_code = -1
+
+## Get the Domain Id required by Linode API
+
+request = urllib.request.Request(API_DOMAINS.format(host=API_HOST))
+request.add_header('authorization', 'Bearer {auth}'.format(auth=API_TOKEN))
+
+client = urllib.request.build_opener()
+page = 1
+page_total = 1
+record_found = False
+domain_id = None
+while not record_found and page <= page_total:
+    with client.open(request) as response:
+        if response.status == 200:
+            result_text = response.read().decode('utf-8')
+            result = json.loads(result_text)
+            page_total = result['pages']
+            for record in result['data']:
+                if record['domain'] == ZONEID:
+                    domain_id = record['id']
+                    record_found = True
+                    break
+        else:
+            exit_code = response.status
+    page += 1
+
+if not record_found:
+    exit(exit_code)
+
+## Delete DNS record
+
+print(API_URL.format(host=API_HOST, domain_id=domain_id,
+        record_id=CERTBOT_AUTH_OUTPUT))
+request = urllib.request.Request(
+        API_URL.format(host=API_HOST, domain_id=domain_id,
+        record_id=CERTBOT_AUTH_OUTPUT), method='DELETE')
+request.add_header('authorization', 'Bearer {auth}'.format(auth=API_TOKEN))
+
+client = urllib.request.build_opener()
+with client.open(request) as response:
+    print(response.status)
+    if response.status == 200:
+        exit_code = 0
+        sleep(10)
+    else:
+        exit_code = response.status
+
+exit(exit_code)

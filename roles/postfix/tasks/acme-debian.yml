@@ -1,0 +1,27 @@
+- copy:
+    dest: /etc/acme/renew.d/dovecot
+    content: |
+        #!/bin/sh
+        cp /etc/acme/certs/{{cert_name}}/fullchain.cer /etc/dovecot/server.crt
+        cp /etc/acme/certs/{{cert_name}}/{{cert_name}}.key /etc/dovecot/server.key
+        chown {{dovecot_unix_user}}:{{dovecot_unix_group}} /etc/dovecot/server.*
+        chmod u=rw,g=r,o= /etc/dovecot/server.crt
+        chmod u=rw,g=,o= /etc/dovecot/server.key
+        /etc/init.d/dovecot reload
+
+    mode: u=rwx,g=rx,o=rx
+  become: true
+
+- copy:
+    dest: /etc/acme/renew.d/postfix
+    content: |
+        #!/bin/sh
+        cp /etc/acme/certs/{{cert_name}}/fullchain.cer /etc/postfix/server.crt
+        cp /etc/acme/certs/{{cert_name}}/{{cert_name}}.key /etc/postfix/server.key
+        chown {{postfix_unix_user}}:{{postfix_unix_group}} /etc/postfix/server.*
+        chmod u=rw,g=r,o= /etc/postfix/server.crt
+        chmod u=rw,g=,o= /etc/postfix/server.key
+        /etc/init.d/postfix reload
+
+    mode: u=rwx,g=rx,o=rx
+  become: true

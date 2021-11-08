@@ -1,0 +1,4 @@
+- set_fact:
+    opendkim_unix_user: opendkim
+    opendkim_unix_group: opendkim
+    opendkim_config_file: /etc/opendkim/opendkim.conf

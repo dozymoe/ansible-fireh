@@ -1,0 +1,42 @@
+- include_tasks: main-{{ansible_distribution|lower}}.yml
+
+- copy:
+    dest: /etc/monit/monitrc.d/email_notification
+    content: |
+      set mailserver {{monit_smtp_host}} port {{monit_smtp_port}}
+          username "{{monit_smtp_user}}" password "{{monit_smtp_password}}"
+          {% if monit_use_tls %} using tlsv1 {% endif %}
+          with timeout 30 seconds
+
+      set mail-format { from: {{monit_mail_from}} }
+
+      set alert {{monit_mail_to}} # receive all alerts
+
+  notify: reload monit ({{ansible_distribution|lower}})
+  become: true
+
+
+- copy:
+    dest: /etc/monit/conf-available/system_resources
+    content: |
+        check system localhost
+            if loadavg (5min) > 3 then alert
+            if loadavg (15min) > 1 then alert
+            if memory usage > 80% for 4 cycles then alert
+            if swap usage > 20% for 4 cycles then alert
+            if cpu usage (user) > 80% for 2 cycles then alert
+            if cpu usage (system) > 20% for 2 cycles then alert
+            if cpu usage (wait) > 80% for 2 cycles then alert
+            if cpu usage > 200% for 4 cycles then alert
+
+        check filesystem root-filesystem with path /
+            if space usage is greater than 75% for 5 cycles then alert
+
+  notify: reload monit ({{ansible_distribution|lower}})
+  become: true
+
+- file:
+    dest: /etc/monit/conf-enabled/system_resources
+    src: /etc/monit/conf-available/system_resources
+    state: link
+  become: true

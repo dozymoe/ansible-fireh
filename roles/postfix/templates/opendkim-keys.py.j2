@@ -2,82 +2,111 @@
 from datetime import datetime
 import os
 import pwd
+import re
 import subprocess
 from tempfile import TemporaryDirectory
 
-selector = datetime.utcnow().strftime('%Y%m')
-if os.path.exists('/etc/opendkim/selectors/' + selector):
-    exit(0)
-
-uid = pwd.getpwnam('{{opendkim_unix_user}}').pw_uid
-gid = pwd.getpwnam('{{opendkim_unix_group}}').pw_gid
-domains = '{{mta_manage_domains|join(",")}}'.split(',')
+UID = pwd.getpwnam('{{opendkim_unix_user}}').pw_uid
+GID = pwd.getpwnam('{{opendkim_unix_group}}').pw_gid
+SOM = datetime.now().replace(day=1)
 
 
 def read_record_file(filename):
-    with open(filename, 'r') as f:
-        content = f.readlines()
-    hostname = content[0].strip().split('\t', 2)[0]
-    value    = content[0].strip().split('(', 2)[1].strip().strip('"')
-    value   += content[1].strip().strip('"')
-    value   += content[2].strip().split(')', 2)[0].strip().strip('"')
+    """
+    Example:
+    201407._domainkey       IN      TXT     ( "v=DKIM1; h=rsa-sha256; k=rsa; s=email; "
+              "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsCXUesKjMbVtfl7V10L9mxpo4XbD9j9GvrYtFXwztC9/gIvfj4Kn7S5ny0Qpgjb03FMd9MsZhmUv4xXB3rG/tisLpKabPlc3AIRREckECo5pkcfxhKo3btmexJPGY9FUycUZ0NLnkpYViH1yPx5IvL1xDGEg0v6qC0t/l/OeDC4J739QdYzTUcpK40ShbyckJ0UGGkLPMPJ7x9"
+              "5w53u2M4U/FCA2+JvETEyNwGVWy3IvFT1i7B6syxCpI4HE12wk3oGTz+ha2CXZKhGT8XyFW0dKaaRANUVUWbNE/dLKUAZgHpZcX9OD7wuQ/xPDi6N81XGvHj0jmf06dr+8gqtNFwIDAQAB" )  ; ----- DKIM key 201407 for fireh.net
+    """
+    pattern = re.compile(r'(?P<host>\d+\.\w+)\s+\w+\s+\w+\s+\(\s*'
+            r'(?P<value>.*)\s*\)\s*;\s+--')
+
+    with open(filename, 'r', encoding='utf-8') as f:
+        content = f.read().replace('\n', '')
+
+    match = pattern.search(content)
+    hostname = match.group('host')
+    value = ''.join(re.split(r'"\s+"', match.group('value'))).strip('" ')
+
     return hostname, value
 
 
-def blockinfile(filename, name, text, exists=True):
-    with open(filename, 'r') as f:
-        lines = f.readlines()
-    if lines and lines[0].endswith('\r\n'):
-        EOL = '\r\n'
-    else:
-        EOL = '\n'
-    begin_mark = '# BEGIN ' + name + EOL
-    text = text + EOL
-    end_mark = '# END ' + name + EOL
-
+def delete_old_dkim_records(domain, provider):
     try:
-        begin_pos = lines.index(begin_mark)
+        sopm = SOM.replace(month=SOM.month - 1)
     except ValueError:
-        begin_pos = len(lines)
-    try:
-        end_pos = lines.index(end_mark) + 1
-    except ValueError:
-        end_pos = len(lines)
+        sopm = SOM.replace(year=SOM.year - 1, month=1)
+    selector = sopm.strftime('%Y%m')
 
-    with open(filename, 'w') as f:
-        for line in lines[:begin_pos]:
-            f.write(line)
-        if exists:
-            f.write(begin_mark)
-            f.write(text)
-            f.write(end_mark)
-        for line in lines[end_pos:]:
-            f.write(line)
+    subprocess.call(['lexicon', provider, 'delete', domain, 'TXT',
+            '--name=%s._domainkey.%s.' % (selector, domain)])
+
+    selfile = '/etc/opendkim/selectors/%s-%s' % (selector, domain)
+    if os.path.exists(selfile):
+        os.remove(selfile)
 
 
-with TemporaryDirectory() as tmpdir:
-    records = []
-    for domain in domains:
+def update_selector_dkim_records(selector, domain, provider):
+    if os.path.exists('/etc/opendkim/selectors/%s-%s' % (selector, domain)):
+        return
+
+    with TemporaryDirectory() as tmpdir:
         subprocess.check_call(['opendkim-genkey', '-b', '2048', '-h',
-                'rsa-sha256', '-r', '-s', selector, '-d', domain, '-v'])
-        # process key file
-        dest = '/etc/opendkim/keys/%s.private' % domain
-        if os.path.exists(dest):
-            os.remove(dest)
-        os.rename(selector + '.private', dest)
-        os.chown(dest, uid, gid)
-        os.chmod(dest, 0o0600)
-        # process record file
-        hostname, txt_value = read_record_file(selector + '.txt')
-        os.remove(selector + '.txt')
-        txt_value = txt_value.replace('h=rsa-', 'h=')
-        records.append((hostname + '.' + domain, txt_value))
+                'rsa-sha256', '-r', '-s', selector, '-d', domain],
+                cwd=tmpdir)
 
-    record = '\n'.join("'%s:%s" % x for x in records)
-    blockinfile('/etc/service/tinydns/root/data', 'opendkim ' + selector,
-            record)
-    subprocess.check_call(['make', '-C', '/etc/service/tinydns/root'])
+        # process record file
+        hostname, txt_value = read_record_file(os.path.join(tmpdir,
+                selector + '.txt'))
+        os.remove(os.path.join(tmpdir, selector + '.txt'))
+        txt_value = txt_value.replace('h=rsa-', 'h=')
+
+        subprocess.check_call(['lexicon', provider, 'create', domain, 'TXT',
+                '--name=%s.%s.' % (hostname, domain),
+                '--content=%s' % txt_value])
+
+        # process key file
+        privkey = '/etc/opendkim/keys/%s.private' % domain
+        if os.path.exists(privkey):
+            os.remove(privkey)
+        os.rename(os.path.join(tmpdir, selector + '.private'), privkey)
+        os.chown(privkey, UID, GID)
+        os.chmod(privkey, 0o0600)
+
+    # update the keytable
+    with open('/etc/opendkim/key.table', 'r', encoding='utf-8') as f:
+        signkeys = [x.rstrip() for x in f.readlines()]
+    signkeys = [x for x in signkeys if x]
+
+    for ii, signkey in enumerate(signkeys):
+        if signkey.startswith(f'{domain} '):
+            signkeys[ii] = f'{domain} {domain}:{selector}:{privkey}'
+            break
+    else:
+        signkeys.append(f'{domain} {domain}:{selector}:{privkey}')
+
+    with open('/etc/opendkim/key.table', 'w', encoding='utf-8') as f:
+        f.write('\n'.join(signkeys))
+
+
+def update_dkim_records(domain, provider, shell_env):
+    for key, value in shell_env.items():
+        os.environ[key] = value
+
+    # We want to change opendkim signing key every month.
+    update_selector_dkim_records(SOM.strftime('%Y%m'), domain, provider)
+
+    # Do clean up
+    delete_old_dkim_records(domain, provider)
 
     # touch state
-    with open('/etc/opendkim/selectors/' + selector, 'w') as f:
+    with open('/etc/opendkim/selectors/%s-%s' % (SOM.strftime('%Y%m'), domain),
+            'w', encoding='utf-8') as f:
         pass
+
+
+{% for domain in mta_managed_domains %}
+update_dkim_records('{{domain}}',
+        '{{managed_domains[domain].lexicon_provider}}',
+        {{managed_domains[domain].environment|to_nice_json}})
+{% endfor %}

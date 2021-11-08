@@ -1,0 +1,15 @@
+- apt:
+    name:
+      - postfix
+      - postfix-pgsql
+      - postfix-policyd-spf-python
+    state: latest
+  become: true
+
+- name: install service
+  service:
+    name: postfix
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  ignore_errors: true

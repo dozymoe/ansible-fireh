@@ -1,0 +1,7 @@
+- set_fact:
+    kibana_home: /usr/share/kibana
+    stunnel_unix_user: stunnel4
+    sudo_unix_group: sudo
+    www_unix_group: www-data
+    www_unix_user: www-data
+    python3_packages_dir: /usr/lib/python3/dist-packages

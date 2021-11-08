@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from datetime import datetime
 from getpass import getpass
 from passlib.hash import argon2
 import psycopg2
@@ -7,7 +8,7 @@ import sys
 conn_args = 'postgresql://%s:%s@%s:%s/%s' % (
     '{{mta_database_user}}',
     '{{mta_database_password}}',
-    '{{postgresql_host|default(gateway)}}',
+    '{{postgresql_host}}',
     '{{postgresql_port|default(5432)}}',
     '{{mta_database_name}}',
 )
@@ -36,10 +37,13 @@ else:
 pwhash = argon2.hash(password)
 
 if user_id:
-    cur.execute("UPDATE virtual_users SET password=%s WHERE id=%s",
-            (pwhash, user_id))
+    cur.execute("""
+            UPDATE virtual_users SET password=%s, modified_at=%s WHERE id=%s""",
+            (pwhash, user_id, datetime.now()))
 else:
-    cur.execute("INSERT into virtual_users(domain_id, password, email) VALUES(%s,%s,%s)",
-            (domain_id, pwhash, email))
+    cur.execute("""
+            INSERT into virtual_users(domain_id, password, email, created_at,
+            modified_at) VALUES(%s,%s,%s,%s,%s)""",
+            (domain_id, pwhash, email, datetime.now(), datetime.now()))
 
 conn.commit()

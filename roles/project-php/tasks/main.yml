@@ -1,5 +1,3 @@
-- include_tasks: "{{ansible_distribution|lower}}.yml"
-
 - name: create needed directories
   file:
     path: "{{item}}"
@@ -9,3 +7,86 @@
   with_items:
     - "{{lookup('vars', user + '_unix_home')}}/var/log"
     - "{{lookup('vars', user + '_unix_home')}}/var/php-sessions"
+
+- name: create pool configuration
+  copy:
+    dest: "{{php_fpm_pool_dir}}/{{user}}.conf"
+    src: "{{php_fpm_pool_dir}}/www.conf.disabled"
+    remote_src: yes
+  become: true
+  notify: reload php-fpm ({{ansible_distribution|lower}})
+
+
+- name: setup pool configuration
+  lineinfile:
+    path: "{{php_fpm_pool_dir}}/{{user}}.conf"
+    line: "{{item.line}}"
+    regexp: "{{item.regexp}}"
+  become: true
+  notify: reload php-fpm ({{ansible_distribution|lower}})
+  with_items:
+    - line: "[{{user}}]"
+      regexp: '^\[\w+\]'
+
+    - line: prefix = {{lookup('vars', user + '_unix_home')}}/var
+      regexp: '^;?\s*prefix\s*='
+
+    - line: user = {{lookup('vars', user + '_unix_user')}}
+      regexp: '^;?\s*user\s*='
+
+    - line: group = {{lookup('vars', user + '_unix_group')}}
+      regexp: '^;?\s*group\s*='
+
+    - line: "listen = {{klipingin_localip}}:9000"
+      regexp: '^;?\s*listen\s*='
+
+    - line: "listen.allowed_clients = 127.0.0.1"
+      regexp: '^;?\s*listen\.allowed_clients\s*='
+
+    - line: pm = {{lookup('vars', user + '_php_process_manager', default='dynamic')}}
+      regexp: '^;?\s*pm\s*='
+
+    - line: pm.max_children = {{lookup('vars', user + '_php_process_max', default=5)}}
+      regexp: '^;?\s*pm\.max_children\s*='
+
+    - line: pm.start_servers = {{lookup('vars', user + '_php_process_initial', default=1)}}
+      regexp: '^;?\s*pm\.start_servers\s*='
+
+    - line: pm.min_spare_servers = {{lookup('vars', user + '_php_process_min_spare', default=1)}}
+      regexp: '^;?\s*pm\.min_spare_servers\s*='
+
+    - line: pm.max_spare_servers = {{lookup('vars', user + '_php_process_max_spare', default=3)}}
+      regexp: '^;?\s*pm\.max_spare_servers\s*='
+
+    - line: pm.process_idle_timeout = {{lookup('vars', user + '_php_process_idle', default=10)}}s
+      regexp: '^;?\s*pm\.process_idle_timeout\s*='
+
+    - line: pm.max_requests = {{lookup('vars', user + '_php_process_max_requests', default=500)}}
+      regexp: '^;?\s*pm\.max_requests\s*='
+
+    - line: php_flag[display_errors] = {{lookup('vars', user + '_php_display_errors', default='off')}}
+      regexp: '^;?\s*php_flag\[display_errors\]\s*='
+
+    - line: php_admin_value[error_log] = {{lookup('vars', user + '_php_error_log', default='log/php-error.log')}}
+      regexp: '^;?\s*php_admin_value\[error_log\]\s*='
+
+    - line: php_admin_flag[log_errors] = {{lookup('vars', user + '_php_log_errors', default='on')}}
+      regexp: '^;?\s*php_admin_flag\[log_errors\]\s*='
+
+    - line: php_admin_value[memory_limit] = {{lookup('vars', user + '_php_memory_limit', default='32')}}M
+      regexp: '^;?\s*php_admin_value\[memory_limit\]\s*='
+
+    - line: php_admin_value[max_execution_time] = {{lookup('vars', user + '_php_max_execution_time', default='30')}}
+      regexp: '^;?\s*php_admin_value\[max_execution_time\]\s*='
+
+    - line: php_admin_value[zlib.output_compression] = {{lookup('vars', user + '_php_zlib_output_compression', default='off')}}
+      regexp: '^;?\s*php_admin_value\[zlib\.output_compression\]\s*='
+
+    - line: php_admin_value[session.save_path] = {{lookup('vars', user + '_php_session_dir', default='php-sessions')}}
+      regexp: '^;?\s*php_admin_value\[session\.save_path\]\s*='
+
+    - line: php_admin_value[upload_max_filesize] = {{lookup('vars', user + '_php_upload_max_filesize', default='2')}}M
+      regexp: '^;?\s*php_admin_value\[upload_max_filesize\]\s*='
+
+    - line: php_admin_value[post_max_size] = {{lookup('vars', user + '_php_post_max_size', default='8')}}M
+      regexp: '^;?\s*php_admin_value\[post_max_size\]\s*='

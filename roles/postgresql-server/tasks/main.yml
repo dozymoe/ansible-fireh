@@ -6,7 +6,7 @@
 
 - import_tasks: certificate-selfsign.yml
   when: postgresql_ssl_provider == 'selfsign'
-- import_tasks: certificate-letsencrypt.yml
+- import_tasks: acme.yml
   when: postgresql_ssl_provider == 'letsencrypt'
 
 - name: generate dhparam

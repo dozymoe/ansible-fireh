@@ -1,0 +1,17 @@
+- name: reload mysql (debian)
+  service:
+    name: mysql
+    state: restarted
+  become: true
+
+- name: restart mysql (debian)
+  service:
+    name: mysql
+    state: restarted
+  become: true
+
+- name: stop mysql (debian)
+  service:
+    name: mysql
+    state: stopped
+  become: true

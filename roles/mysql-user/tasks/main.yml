@@ -1,0 +1,17 @@
+- import_tasks: ../../mariadb-server/tasks/facts.yml
+
+- mysql_user:
+    name: "{{user}}"
+    host: "{{ipv4}}"
+    password: "{{password}}"
+    priv: "{{database}}.*:ALL"
+  become: true
+  when: ipv4 is defined
+
+- mysql_user:
+    name: "{{user}}"
+    host: "{{ipv6}}"
+    password: "{{password}}"
+    priv: "{{database}}.*:ALL"
+  become: true
+  when: ipv6 is defined

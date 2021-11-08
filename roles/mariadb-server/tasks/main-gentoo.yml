@@ -1,0 +1,41 @@
+- name: install mariadb
+  portage:
+    name:
+      - dev-db/mariadb
+      - dev-python/mysqlclient
+  become: true
+
+- name: upgrade mariadb
+  portage:
+    name:
+      - dev-db/mariadb
+      - dev-python/mysqlclient
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- name: initialize data directory
+  command: emerge --config dev-db/mariadb
+  args:
+    creates: /var/lib/mysql
+  become: true
+
+
+- name: install mysql service
+  service:
+    name: mysql
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  when: not use_pacemaker or not pacemaker_manage_mysql
+  ignore_errors: true
+
+- name: install mysql service
+  service:
+    name: mysql
+    enabled: no
+    state: "{{'started' if pacemaker_manage_mysql_init else None}}"
+  become: true
+  when: use_pacemaker and pacemaker_manage_mysql

@@ -1,0 +1,5 @@
+- set_fact:
+    php_cli_ini: /etc/php/cli-php{{php_version}}/php.ini
+    php_fpm_ini: /etc/php/fpm-php{{php_version}}/php.ini
+    php_fpm_conf: /etc/php/fpm-php{{php_version}}/php-fpm.conf
+    php_fpm_pool_dir: /etc/php/fpm-php{{php_version}}/fpm.d

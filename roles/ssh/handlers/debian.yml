@@ -1,0 +1,5 @@
+- name: reload ssh (debian)
+  service:
+    name: ssh
+    state: reloaded
+  become: true

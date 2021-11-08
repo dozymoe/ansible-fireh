@@ -1,0 +1,88 @@
+- include_tasks: dovecot-{{ansible_distribution|lower}}.yml
+
+- include_role:
+    name: project-user
+  vars:
+    user: mta
+
+- import_tasks: acme.yml
+
+
+- name: setup dovecot dhparams
+  command: openssl dhparam -out /etc/dovecot/dh.pem 4096
+  args:
+    creates: /etc/dovecot/dh.pem
+  become: true
+  notify: restart dovecot ({{ansible_distribution|lower}})
+
+
+- name: configure dovecot.conf
+  lineinfile:
+    path: /etc/dovecot/dovecot.conf
+    line: "{{item.line}}"
+    regexp: "{{item.regex}}"
+  notify: restart dovecot ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - line: protocols = imap pop3 lmtp
+      regex: '^#?protocols\s*='
+
+
+- name: configure dovecot
+  template:
+    dest: "{{item.dest}}"
+    src: "{{item.src}}"
+    owner: "{{mta_unix_user}}"
+    group: "{{dovecot_unix_group}}"
+    mode: o=
+  notify: restart dovecot ({{ansible_distribution|lower}})
+  become: true
+  with_items:
+    - dest: /etc/dovecot/conf.d/10-auth.conf
+      src: 10-auth.conf.j2
+    - dest: /etc/dovecot/conf.d/10-mail.conf
+      src: 10-mail.conf.j2
+    - dest: /etc/dovecot/conf.d/10-master.conf
+      src: 10-master.conf.j2
+    - dest: /etc/dovecot/conf.d/10-ssl.conf
+      src: 10-ssl.conf.j2
+    - dest: /etc/dovecot/conf.d/auth-sql.conf.ext
+      src: auth-sql.conf.ext.j2
+    - dest: /etc/dovecot/dovecot-sql.conf.ext
+      src: dovecot-sql.conf.ext.j2
+
+
+- name: /etc/dovecot permissions
+  file:
+    path: /etc/dovecot
+    owner: "{{mta_unix_user}}"
+    group: "{{dovecot_unix_group}}"
+    mode: o=
+    state: directory
+  become: true
+
+
+- name: create vhost directories
+  file:
+    path: "{{mta_unix_home}}/vhosts/{{item}}"
+    state: directory
+    owner: "{{mta_unix_user}}"
+    group: "{{mta_unix_group}}"
+    mode: o=
+  become: true
+  with_items: "{{mta_managed_domains}}"
+
+
+- file:
+    path: /root/bin
+    state: directory
+  become: true
+
+- name: helper scripts
+  template:
+    dest: /root/bin/{{item}}
+    src: "{{item}}.j2"
+    mode: u=rwx,g=rx
+  become: true
+  with_items:
+    - create_email_user.py

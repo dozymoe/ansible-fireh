@@ -33,9 +33,9 @@
     dest: /etc/cron.daily/renew-ssl-certificates
     content: |
         #!/bin/sh
-        /bin/sh /opt/acme.sh/acme.sh --cron
-        --home /etc/acme --cert-home /etc/acme/certs
-        --config-home /etc/acme/config
+        /bin/sh /opt/acme.sh/acme.sh --cron \
+            --home /etc/acme --cert-home /etc/acme/certs \
+            --config-home /etc/acme/config
 
     mode: u=rwx,g=rx,o=
   become: true

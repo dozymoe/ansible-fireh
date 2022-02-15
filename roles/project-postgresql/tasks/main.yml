@@ -1,0 +1,33 @@
+- import_tasks: ../../postgresql-server/tasks/facts.yml
+
+
+- postgresql_user:
+    name: "{{lookup('vars', app + '_database_user')}}"
+    password: "{{lookup('vars', app + '_database_password')}}"
+    role_attr_flags: CREATEDB,LOGIN
+  become: true
+  become_user: postgres
+  when: is_postgresql_master
+
+
+- postgresql_db:
+    name: "{{lookup('vars', app + '_database_name')}}"
+    owner: "{{lookup('vars', app + '_database_user')}}"
+    encoding: UTF-8
+  become: true
+  become_user: postgres
+
+
+- name: database user authentication
+  blockinfile:
+    path: "{{postgresql_config_dir}}/pg_hba.conf"
+    marker: "# {mark} {{app}}"
+    content: |
+      {% for ip in hosts %}
+      hostssl  postgres  {{lookup('vars', app + '_database_user')}}  {{hostvars[ip].ipv4}}/32  md5
+      hostssl  {{lookup('vars', app + '_database_name')}}  {{lookup('vars', app + '_database_user')}}  {{hostvars[ip].ipv4}}/32  md5
+      hostssl  postgres  {{lookup('vars', app + '_database_user')}}  {{hostvars[ip].ipv6}}/128  md5
+      hostssl  {{lookup('vars', app + '_database_name')}}  {{lookup('vars', app + '_database_user')}}  {{hostvars[ip].ipv6}}/128  md5
+      {% endfor %}
+  notify: reload postgresql ({{ansible_distribution|lower}})
+  become: true

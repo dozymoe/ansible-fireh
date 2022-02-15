@@ -54,7 +54,7 @@
         --email {{managed_domains[managed_domain].soa_email}}
 
     #--test
-    creates: /etc/acme/certs/{{cert_name}}/{{cert_name}}.conf
+    creates: /etc/acme/certs/{{cert_name}}/fullchain.cer
   become: true
   environment: "{{managed_domains[managed_domain].environment}}"
 

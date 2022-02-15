@@ -3,9 +3,9 @@
 - copy:
     dest: /etc/monit/monitrc.d/email_notification
     content: |
-      set mailserver {{monit_smtp_host}} port {{monit_smtp_port}}
+      set mailserver {{mta_hostname}} port {{mta_smtp_port}}
           username "{{monit_smtp_user}}" password "{{monit_smtp_password}}"
-          {% if monit_use_tls %} using tlsv1 {% endif %}
+          {% if mta_smtp_use_tls %} using tlsv1 {% endif %}
           with timeout 30 seconds
 
       set mail-format { from: {{monit_mail_from}} }

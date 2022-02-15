@@ -64,6 +64,12 @@
       regex: '^#?OversignHeaders\s'
 
 
+- file:
+    path: /etc/opendkim
+    state: directory
+  become: true
+
+
 - name: opendkim trusted hosts
   copy:
     dest: /etc/opendkim/trusted.hosts

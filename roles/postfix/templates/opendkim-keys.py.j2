@@ -10,6 +10,13 @@ UID = pwd.getpwnam('{{opendkim_unix_user}}').pw_uid
 GID = pwd.getpwnam('{{opendkim_unix_group}}').pw_gid
 SOM = datetime.now().replace(day=1)
 
+PATTERN_OPENDKIM_KEY = re.compile(r'(?P<host>\d+\.\w+)\s+\w+\s+\w+\s+\(\s*'
+        r'(?P<value>.*)\s*\)\s*;\s+--')
+PATTERN_KEY_TABLE = re.compile(r'^(?P<selector>\d{6})\._domainkey\.'
+        r'(?P<domain>[\w.-]+)')
+PATTERN_SIGNING_TABLE = re.compile(r'(?P<selector>\d{6})\._domainkey\.'
+        r'(?P<domain>[\w.-]+)$')
+
 
 def read_record_file(filename):
     """
@@ -18,13 +25,10 @@ def read_record_file(filename):
               "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAsCXUesKjMbVtfl7V10L9mxpo4XbD9j9GvrYtFXwztC9/gIvfj4Kn7S5ny0Qpgjb03FMd9MsZhmUv4xXB3rG/tisLpKabPlc3AIRREckECo5pkcfxhKo3btmexJPGY9FUycUZ0NLnkpYViH1yPx5IvL1xDGEg0v6qC0t/l/OeDC4J739QdYzTUcpK40ShbyckJ0UGGkLPMPJ7x9"
               "5w53u2M4U/FCA2+JvETEyNwGVWy3IvFT1i7B6syxCpI4HE12wk3oGTz+ha2CXZKhGT8XyFW0dKaaRANUVUWbNE/dLKUAZgHpZcX9OD7wuQ/xPDi6N81XGvHj0jmf06dr+8gqtNFwIDAQAB" )  ; ----- DKIM key 201407 for fireh.net
     """
-    pattern = re.compile(r'(?P<host>\d+\.\w+)\s+\w+\s+\w+\s+\(\s*'
-            r'(?P<value>.*)\s*\)\s*;\s+--')
-
     with open(filename, 'r', encoding='utf-8') as f:
         content = f.read().replace('\n', '')
 
-    match = pattern.search(content)
+    match = PATTERN_OPENDKIM_KEY.search(content)
     hostname = match.group('host')
     value = ''.join(re.split(r'"\s+"', match.group('value'))).strip('" ')
 
@@ -73,20 +77,44 @@ def update_selector_dkim_records(selector, domain, provider):
         os.chown(privkey, UID, GID)
         os.chmod(privkey, 0o0600)
 
-    # update the keytable
+    # update the key table
     with open('/etc/opendkim/key.table', 'r', encoding='utf-8') as f:
-        signkeys = [x.rstrip() for x in f.readlines()]
-    signkeys = [x for x in signkeys if x]
+        lines = [x.rstrip() for x in f.readlines()]
+    lines = [x for x in lines if x]
 
-    for ii, signkey in enumerate(signkeys):
-        if signkey.startswith(f'{domain} '):
-            signkeys[ii] = f'{domain} {domain}:{selector}:{privkey}'
+    for ii, signkey in enumerate(lines):
+        match = PATTERN_KEY_TABLE.search(signkey)
+        if match and match.group('domain') == domain:
+            lines[ii] = f'{selector}._domainkey.{domain} '
+                    f'{domain}:{selector}:{privkey}'
             break
     else:
-        signkeys.append(f'{domain} {domain}:{selector}:{privkey}')
+        lines.append(f'{selector}._domainkey.{domain} '
+                f'{domain}:{selector}:{privkey}'
 
     with open('/etc/opendkim/key.table', 'w', encoding='utf-8') as f:
-        f.write('\n'.join(signkeys))
+        for line in lines:
+            f.write(line)
+            f.write('\n')
+
+    # update the signing table
+    with open('/etc/opendkim/signing.table', 'r', encoding='utf-8') as f:
+        lines = [x.rstrip() for x in f.readlines()]
+    lines = [x for x in lines if x]
+
+    for ii, signkey in enumerate(lines):
+        match = PATTERN_SIGNING_TABLE.search(signkey)
+        if match and match.group('domain') == domain:
+            lines[ii] = f'*@{domain} {selector}._domainkey.{domain}'
+            break
+    else:
+        lines.append(f'*@{domain} {selector}._domainkey.{domain}')
+
+    with open('/etc/opendkim/signing.table', 'w', encoding='utf-8') as f:
+        for line in lines:
+            f.write(line)
+            f.write('\n')
+
 
 
 def update_dkim_records(domain, provider, shell_env):

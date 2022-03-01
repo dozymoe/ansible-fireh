@@ -3,7 +3,7 @@
 
 - postgresql_user:
     name: "{{lookup('vars', app + '_database_user')}}"
-    password: "{{lookup('vars', app + '_database_password')}}"
+    password: "{{lookup('vars', lookup('vars', app + '_database_user') + '_database_password')}}"
     role_attr_flags: CREATEDB,LOGIN
   become: true
   become_user: postgres

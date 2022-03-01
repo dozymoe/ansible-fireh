@@ -7,6 +7,16 @@
     port: "{{ansible_port | default(22)}}"
     comment: ssh
   become: true
+  when: ssh_ports is undefined
+
+- ufw:
+    rule: allow
+    proto: tcp
+    port: "{{item}}"
+    comment: ssh
+  become: true
+  when: ssh_ports is defined
+  with_items: "{{ssh_ports}}"
 
 
 - name: Firewall default incoming policy

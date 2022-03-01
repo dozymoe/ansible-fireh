@@ -21,6 +21,6 @@
 
 - service:
     name: runit
-    enabled: "{{daemons_on_demand}}"
+    enabled: "{{not daemons_on_demand}}"
     state: started
   become: true

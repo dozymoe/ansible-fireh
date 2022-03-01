@@ -1,1 +1,20 @@
-main-debian.yml
+- apt:
+    name:
+      - python3
+    state: latest
+  become: true
+
+
+- set_fact:
+    kibana_home: /usr/share/kibana
+    stunnel_unix_user: stunnel4
+    sudo_unix_group: sudo
+    www_unix_group: www-data
+    www_unix_user: www-data
+    python3_packages_dir: /usr/lib/python3/dist-packages
+
+
+- command: "python3 --version"
+  register: stdout_python_version
+- set_fact:
+    python_version: "{{stdout_python_version.stdout | regex_search('(\\d+\\.\\d+)\\.', '\\1') | first}}"

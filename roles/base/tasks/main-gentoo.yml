@@ -87,7 +87,6 @@
       - sys-process/cronie
 
       - app-admin/xtail
-      - app-editors/vim
       - app-misc/ranger
       - app-misc/tmux
       - sys-process/htop
@@ -107,7 +106,6 @@
       - sys-process/cronie
 
       - app-admin/xtail
-      - app-editors/vim
       - app-misc/ranger
       - app-misc/tmux
       - sys-process/htop

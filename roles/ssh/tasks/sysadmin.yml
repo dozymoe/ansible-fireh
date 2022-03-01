@@ -7,6 +7,6 @@
           AllowTcpForwarding yes
           PasswordAuthentication yes
           PubkeyAuthentication yes
-          MaxAuthTries 12
+          MaxAuthTries 6
   become: true
   notify: reload ssh ({{ansible_distribution|lower}})

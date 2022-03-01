@@ -1,9 +1,17 @@
 - set_fact:
     network_interface: "{{item}}"
-    public_ipv4: "{{ansible_host}}"
-    public_ipv6: "{{hostvars[ansible_host]['ansible_' + item]['ipv6'][0]['address']}}"
-    public_macaddr: "{{hostvars[ansible_host]['ansible_' + item].get('macaddress')}}"
-  when: hostvars[ansible_host]['ansible_' + item].get('ipv4', {}).get('address') == ansible_host
+    ipv4: "{{hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address']}}"
+    ipv6: "{{hostvars[inventory_hostname]['ansible_' + item]['ipv6'][0]['address']}}"
+    macaddr: "{{hostvars[inventory_hostname]['ansible_' + item].get('macaddress')}}"
+  when: preferred_ipv4 is defined and hostvars[inventory_hostname]['ansible_' + item].get('ipv4', {}).get('address') is match(preferred_ipv4)
+  with_items: "{{ansible_interfaces}}"
+
+- set_fact:
+    network_interface: "{{item}}"
+    ipv4: "{{hostvars[inventory_hostname]['ansible_' + item]['ipv4']['address']}}"
+    ipv6: "{{hostvars[inventory_hostname]['ansible_' + item]['ipv6'][0]['address']}}"
+    macaddr: "{{hostvars[inventory_hostname]['ansible_' + item].get('macaddress')}}"
+  when: preferred_ipv4 is undefined and hostvars[inventory_hostname]['ansible_' + item].get('ipv4', {}).get('address') == ansible_host
   with_items: "{{ansible_interfaces}}"
 
 - include_tasks: main-{{ansible_distribution | lower}}.yml

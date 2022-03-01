@@ -17,7 +17,6 @@
       - acl
       - net-tools
       - xtail
-      - vim
       - ranger
       - rsync
       - tmux

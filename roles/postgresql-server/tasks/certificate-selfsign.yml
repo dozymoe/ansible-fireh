@@ -16,7 +16,7 @@
 - openssl_csr:
     path: "{{postgresql_data_dir}}/server.csr"
     privatekey_path: "{{postgresql_data_dir}}/server.key"
-    common_name: "{{postgresql_hostname}}"
+    common_name: "{{postgresql_host}}"
     owner: postgres
     group: postgres
     mode: u=r,g=r,o=

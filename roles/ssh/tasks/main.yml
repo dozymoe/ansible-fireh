@@ -8,20 +8,57 @@
   become: True
   notify: reload ssh ({{ansible_distribution|lower}})
   with_items:
-    - line: Port {{ansible_port | default(22)}}
-      regexp: '^#?Port\s'
     - line: PermitRootLogin yes
       regexp: '^#?PermitRootLogin\s'
     - line: PasswordAuthentication no
       regexp: '^#?PasswordAuthentication\s'
-    - line: ChallengeResponseAuthentication yes
+    - line: ChallengeResponseAuthentication no
       regexp: '^#?ChallengeResponseAuthentication\s'
+    - line: PubkeyAuthentication yes
+      regexp: '^#?PubkeyAuthentication\s'
+    - line: X11Forwarding no
+      regexp: '^#?X11Forwarding\s'
+    - line: AllowTcpForwarding no
+      regexp: '^#?AllowTcpForwarding\s'
     - line: MaxAuthTries 3
       regexp: '^#?MaxAuthTries\s'
+
+- lineinfile:
+    path: /etc/ssh/sshd_config
+    line: Port {{ansible_port | default(22)}}
+    regexp: '^#?Port\s'
+  become: True
+  notify: reload ssh ({{ansible_distribution|lower}})
+  when: ssh_ports is undefined
+
+- blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} ports"
+    content: |
+      {% for port in ssh_ports %}
+      Port {{port}}
+      {% endfor %}
+    insertafter: '^#?Port\s'
+  become: true
+  notify: reload ssh ({{ansible_distribution|lower}})
+  when: ssh_ports is defined
 
 
 - import_tasks: sysadmin.yml
   when: create_sysadmin_user|default(false)
+
+
+- blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} root"
+    content: |
+      Match User root
+          X11Forwarding no
+          AllowTcpForwarding no
+          PasswordAuthentication no
+          PubkeyAuthentication yes
+  become: true
+  notify: reload ssh ({{ansible_distribution|lower}})
 
 
 - blockinfile:

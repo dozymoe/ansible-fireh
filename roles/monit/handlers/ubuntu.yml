@@ -1,0 +1,12 @@
+- name: restart monit (ubuntu)
+  service:
+    name: monit
+    state: restarted
+  become: true
+
+
+- name: reload monit (ubuntu)
+  service:
+    name: monit
+    state: reloaded
+  become: true

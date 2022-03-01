@@ -15,8 +15,8 @@
       USERNAME="{{lookup('vars', user + '_unix_user')}}"
       GROUPNAME="{{lookup('vars', user + '_unix_group')}}"
       export HOME="{{lookup('vars', user + '_unix_home')}}"
-      {% if unix_groups is defined %}
-      UNIXGROUPS=":{{unix_groups|join(':')}}"
+      {% if lookup('vars', user + '_unix_groups') %}
+      UNIXGROUPS=":{{lookup('vars', user + '_unix_groups')|join(':')}}"
       {% else %}
       UNIXGROUPS=""
       {% endif %}

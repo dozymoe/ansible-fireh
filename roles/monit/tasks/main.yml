@@ -1,7 +1,8 @@
+- import_tasks: facts.yml
 - include_tasks: main-{{ansible_distribution|lower}}.yml
 
 - copy:
-    dest: /etc/monit/monitrc.d/email_notification
+    dest: "{{monit_config_dir}}/email_notification"
     content: |
       set mailserver {{mta_hostname}} port {{mta_smtp_port}}
           username "{{monit_smtp_user}}" password "{{monit_smtp_password}}"

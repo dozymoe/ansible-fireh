@@ -1,3 +1,5 @@
+- import_tasks: ../../php/tasks/facts.yml
+
 - name: create needed directories
   file:
     path: "{{item}}"
@@ -37,7 +39,7 @@
     - line: group = {{lookup('vars', user + '_unix_group')}}
       regexp: '^;?\s*group\s*='
 
-    - line: "listen = {{klipingin_localip}}:9000"
+    - line: "listen = {{lookup('vars', app + '_localip')}}:9000"
       regexp: '^;?\s*listen\s*='
 
     - line: "listen.allowed_clients = 127.0.0.1"

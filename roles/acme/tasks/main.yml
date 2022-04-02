@@ -51,12 +51,30 @@
         --issue --dns {{managed_domains[managed_domain].acme_provider}}
         --dnssleep 300
         {% for domain in domains -%} -d '{{domain}}' {% endfor %}
-        --email {{managed_domains[managed_domain].soa_email}}
+        --email {{ssl_account_email}}
 
     #--test
     creates: /etc/acme/certs/{{cert_name}}/fullchain.cer
   become: true
   environment: "{{managed_domains[managed_domain].environment}}"
+  when: verification == "dns"
+
+
+- command:
+    cmd: >
+        /bin/sh /opt/acme.sh/acme.sh
+        --log --debug
+        --home /etc/acme --cert-home /etc/acme/certs
+        --config-home /etc/acme/config
+        --renew-hook /etc/acme/renew-hook
+        --issue -w /var/www/html
+        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
+        --email {{ssl_account_email}}
+
+    #--test
+    creates: /etc/acme/certs/{{cert_name}}/fullchain.cer
+  become: true
+  when: verification == "webroot"
 
 
 #- file:

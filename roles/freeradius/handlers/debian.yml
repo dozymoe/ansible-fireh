@@ -1,0 +1,19 @@
+- name: reload freeradius (debian)
+  service:
+    name: freeradius
+    state: reloaded
+  become: true
+
+
+- name: restart freeradius (debian)
+  service:
+    name: freeradius
+    state: restarted
+  become: true
+
+
+- name: stop freeradius (debian)
+  service:
+    name: freeradius
+    state: stopped
+  become: true

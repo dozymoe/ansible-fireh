@@ -24,6 +24,7 @@
     name:
       - postgresql-{{postgresql_version}}
       - libpq-dev
+      - python3-cryptography
       - python3-psycopg2
     state: latest
   become: true

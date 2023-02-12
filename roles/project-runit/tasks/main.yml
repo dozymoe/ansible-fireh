@@ -20,7 +20,18 @@
       {% else %}
       UNIXGROUPS=""
       {% endif %}
-      exec chpst -u $USERNAME:$GROUPNAME$UNIXGROUPS runsvdir $HOME/service
+      SERVICE_DIR=$HOME/service
+
+      sv_stop()
+      {
+          kill -s HUP $PID
+          wait $PID
+      }
+      trap "sv_stop; exit" TERM
+
+      chpst -u $USERNAME:$GROUPNAME$UNIXGROUPS runsvdir $SERVICE_DIR &
+      PID=$!
+      wait
     mode: u=rwx,g=rx,o=x
   become: true
 

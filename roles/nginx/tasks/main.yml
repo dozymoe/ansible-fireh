@@ -1,3 +1,4 @@
+- import_tasks: facts.yml
 - include_tasks: main-{{ansible_distribution | lower}}.yml
 
 

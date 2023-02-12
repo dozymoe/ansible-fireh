@@ -1,0 +1,31 @@
+diff --git a/src/linux/xt_coova.c b/src/linux/xt_coova.c
+index 00ea2b3..7c3e01c 100644
+--- a/src/linux/xt_coova.c
++++ b/src/linux/xt_coova.c
+@@ -91,7 +91,7 @@ static DEFINE_MUTEX(coova_mutex);
+ 
+ #ifdef CONFIG_PROC_FS
+ static struct proc_dir_entry *coova_proc_dir;
+-static const struct file_operations coova_old_fops, coova_mt_fops;
++static const struct proc_ops coova_old_fops, coova_mt_fops;
+ #endif
+ 
+ static u_int32_t hash_rnd;
+@@ -577,12 +577,12 @@ coova_mt_proc_write(struct file *file, const char __user *input,
+ 	return size + 1;
+ }
+ 
+-static const struct file_operations coova_mt_fops = {
+-	.open    = coova_seq_open,
+-	.read    = seq_read,
+-	.write   = coova_mt_proc_write,
+-	.release = seq_release_private,
+-	.owner   = THIS_MODULE,
++static const struct proc_ops coova_mt_fops = {
++	.proc_open    = coova_seq_open,
++	.proc_read    = seq_read,
++	.proc_write   = coova_mt_proc_write,
++	.proc_release = seq_release_private,
++	//.owner   = THIS_MODULE,
+ };
+ #endif /* CONFIG_PROC_FS */

@@ -1,0 +1,15 @@
+- apt:
+    name:
+      - autoconf
+      - automake
+      - build-essential
+      - daemon
+      - gengetopt
+      - libssl-dev
+      - libjson-c-dev
+      - libtool
+      - libxtables-dev
+      - linux-headers-amd64
+      - net-tools
+      - psmisc
+  become: true

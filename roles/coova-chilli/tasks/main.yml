@@ -1,0 +1,60 @@
+- include_tasks: "{{ansible_distribution | lower}}.yml"
+
+- name: Download Coova Chilli
+  get_url:
+    url: https://github.com/coova/coova-chilli/archive/refs/tags/{{coova_version}}.tar.gz
+    dest: /tmp/coova-chilli-{{coova_version}}.tar.gz
+  become: true
+
+- name: Ensure extract directory
+  file:
+    path: /usr/src/coova-chilli
+    state: directory
+  become: true
+
+- name: Unarchive Coova Chilli
+  unarchive:
+    src: /tmp/coova-chilli-{{coova_version}}.tar.gz
+    dest: /usr/src/coova-chilli
+    remote_src: true
+    extra_opts:
+      - --strip
+      - 1
+  become: true
+
+- name: Patch codes
+  patch:
+    src: coova-chilli-issues-529.patch
+    basedir: /usr/src/coova-chilli
+    strip: 1
+  become: true
+
+- name: Build run bootstrap
+  command:
+    chdir: /usr/src/coova-chilli
+    cmd: ./bootstrap
+  become: true
+
+- name: Build run configure
+  command:
+    chdir: /usr/src/coova-chilli
+    cmd: >
+      ./configure --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+      --enable-wpad --enable-authedallowed
+      --with-nfcoova
+      --enable-largelimits --with-openssl
+  become: true
+
+- name: Build run make
+  shell:
+    chdir: /usr/src/coova-chilli
+    cmd: make && make install
+  become: true
+
+
+- name: Patch init script
+  lineinfile:
+    line: '    killall $exec'
+    regexp: '^\s*(killall|killproc)\s+'
+    path: /etc/init.d/chilli
+  become: true

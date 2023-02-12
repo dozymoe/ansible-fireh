@@ -1,0 +1,3 @@
+- name: freeradius debian facts
+  set_fact:
+    freeradius_config_dir: /etc/freeradius/3.0

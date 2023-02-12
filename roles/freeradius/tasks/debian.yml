@@ -1,0 +1,13 @@
+- apt:
+    name:
+      - freeradius
+      - freeradius-postgresql
+      - freeradius-utils
+  become: true
+
+
+- service:
+    name: freeradius
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

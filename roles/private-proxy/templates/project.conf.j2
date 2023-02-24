@@ -1,0 +1,31 @@
+auth_param basic program /opt/squid/libexec/basic_ncsa_auth /etc/squid/passwd
+auth_param basic realm proxy
+acl step1 at_step SslBump1
+acl authenticated proxy_auth REQUIRED
+http_access allow authenticated
+
+
+## Setup cache
+
+cache_dir diskd /var/cache/squid 8000 16 256
+maximum_object_size 500 MB
+refresh_pattern ^ftp: 1440 20% 10080
+refresh_pattern ^gopher: 1440 0% 1440
+refresh_pattern -i (/cgi-bin/|\?) 0 0% 0
+refresh_pattern . 0 20% 4320
+
+
+## Hide Browser's Real IP Address
+
+forwarded_for delete
+via off
+follow_x_forwarded_for deny all
+request_header_access X-Forwarded-For deny all
+
+
+## HTTPS cache
+
+ssl_bump peek step1
+#ssl_bump peek all
+ssl_bump bump all
+sslcrtd_program /opt/squid/libexec/security_file_certgen -s /var/lib/squid/ssl_db -M 8MB

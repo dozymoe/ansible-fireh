@@ -1,0 +1,50 @@
+- import_tasks: facts.yml
+- include_tasks: "{{ansible_distribution|lower}}.yml"
+
+
+- file:
+    path: "{{item}}"
+    state: directory
+    owner: "{{squid_unix_user}}"
+    group: "{{squid_unix_group}}"
+  become: true
+  with_items:
+    - /var/cache/squid
+    - /var/lib/squid
+
+
+- name: setup cache directory
+  command: /opt/squid/sbin/squid -z
+  args:
+    creates: /var/cache/squid/swap.state
+  become: true
+
+
+- name: setup ssl keys directory
+  command: /opt/squid/libexec/security_file_certgen -s /var/lib/squid/ssl_db -M 8MB
+  args:
+    creates: /var/lib/squid/ssl_db/index.txt
+  become: true
+
+
+- name: configure squid.conf
+  lineinfile:
+    path: /etc/squid/squid.conf
+    line: "http_port 3128 ssl-bump generate-host-certificates=on dynamic_cert_mem_cache_size=8MB cert=/etc/squid/ca.pem"
+    regexp: '^http_port\s\d+'
+  become: true
+
+
+- name: configure squid
+  template:
+    dest: /etc/squid/conf.d/{{project_name}}.conf
+    src: project.conf.j2
+  become: true
+
+
+- ufw:
+    rule: allow
+    port: "3128"
+    proto: tcp
+    comment: private-proxy
+  become: true

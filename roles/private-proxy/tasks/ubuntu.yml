@@ -1,0 +1,91 @@
+- apt:
+    name: squid
+    state: absent
+  become: true
+
+- apt:
+    name:
+      - build-essential
+      - openssl
+      - libssl-dev
+      - pkg-config
+    state: latest
+  become: true
+
+
+- name: create squid unix group
+  group:
+    name: "{{squid_unix_group}}"
+    gid: 13
+  become: true
+
+- name: create squid unix user
+  user:
+    name: "{{squid_unix_user}}"
+    uid: 13
+    group: "{{squid_unix_group}}"
+    home: /var/lib/squid
+    shell: /usr/sbin/nologin
+    create_home: no
+  become: true
+
+
+- file:
+    path: /opt/squid
+    state: directory
+  become: true
+
+
+- download_sig:
+    url: http://www.squid-cache.org/Versions/v{{squid_version[0]}}/squid-{{squid_version}}.tar.xz.asc
+    field: SHA1
+
+- name: download squid source
+  get_url:
+    url: http://www.squid-cache.org/Versions/v{{squid_version[0]}}/squid-{{squid_version}}.tar.xz
+    dest: /usr/src/squid-{{squid_version}}.tar.xz
+    checksum: "sha1:{{sig_value}}"
+  become: true
+
+- name: extract squid source
+  unarchive:
+    src: /usr/src/squid-{{squid_version}}.tar.xz
+    dest: /usr/src
+    remote_src: yes
+  become: true
+
+
+- name: configure squid
+  command: >
+      /usr/src/squid-{{squid_version}}/configure
+      --with-openssl --enable-ssl-crtd --with-default-user=proxy
+      --prefix=/opt/squid --sysconfdir=/etc/squid --with-logdir=/var/log/squid
+      --with-pidfile=/run/squid.pid --sharedstatedir=/var/lib
+  args:
+    chdir: /usr/src/squid-{{squid_version}}
+  become: true
+
+- name: clean make squid
+  command: make clean
+  args:
+    chdir: /usr/src/squid-{{squid_version}}
+  become: true
+
+- name: make squid
+  command: make -j8 -l2
+  args:
+    chdir: /usr/src/squid-{{squid_version}}
+  become: true
+
+- name: install squid
+  command: make install
+  args:
+    chdir: /usr/src/squid-{{squid_version}}
+  become: true
+
+
+- name: delete source directory
+  file:
+    path: /usr/src/squid-{{squid_version}}
+    state: absent
+  become: true

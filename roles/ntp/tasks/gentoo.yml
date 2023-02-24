@@ -1,0 +1,12 @@
+- portage:
+    name:
+      - net-misc/ntp
+  become: true
+
+- portage:
+    name:
+      - net-misc/ntp
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true

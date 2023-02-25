@@ -1,4 +1,5 @@
-- apt:
+- name: install dovecot
+  apt:
     name:
       - dovecot-common
       - dovecot-imapd

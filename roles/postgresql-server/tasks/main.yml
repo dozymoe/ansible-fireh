@@ -10,9 +10,9 @@
   when: postgresql_ssl_provider == 'letsencrypt'
 
 - name: generate dhparam
-  command: openssl dhparam -out {{postgresql_data_dir}}/dhparam.pem 2048
+  command: openssl dhparam -out {{postgresql_config_dir}}/dhparam.pem 2048
   args:
-    creates: "{{postgresql_data_dir}}/dhparam.pem"
+    creates: "{{postgresql_config_dir}}/dhparam.pem"
   become: true
   become_user: postgres
   notify: reload postgresql ({{ansible_distribution|lower}})
@@ -66,16 +66,16 @@
     - line: "ssl = on"
       regexp: '^#?ssl\s*='
 
-    - line: "ssl_cert_file = 'server.crt'"
+    - line: "ssl_cert_file = '{{postgresql_config_dir}}/server.crt'"
       regexp: '^#?ssl_cert_file\s*='
 
     - line: "ssl_crl_file = ''"
       regexp: '^#?ssl_crl_file\s*='
 
-    - line: "ssl_key_file = 'server.key'"
+    - line: "ssl_key_file = '{{postgresql_config_dir}}/server.key'"
       regexp: '^#?ssl_key_file\s*='
 
-    - line: "ssl_dh_params_file = 'dhparam.pem'"
+    - line: "ssl_dh_params_file = '{{postgresql_config_dir}}/dhparam.pem'"
       regexp: '^#?ssl_dh_params_file\s*='
 
     - line: "log_timezone = '{{timezone}}'\\1"

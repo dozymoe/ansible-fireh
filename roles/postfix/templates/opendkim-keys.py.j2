@@ -85,12 +85,12 @@ def update_selector_dkim_records(selector, domain, provider):
     for ii, signkey in enumerate(lines):
         match = PATTERN_KEY_TABLE.search(signkey)
         if match and match.group('domain') == domain:
-            lines[ii] = f'{selector}._domainkey.{domain} '
+            lines[ii] = f'{selector}._domainkey.{domain} ' +\
                     f'{domain}:{selector}:{privkey}'
             break
     else:
-        lines.append(f'{selector}._domainkey.{domain} '
-                f'{domain}:{selector}:{privkey}'
+        lines.append(f'{selector}._domainkey.{domain} ' +\
+                f'{domain}:{selector}:{privkey}')
 
     with open('/etc/opendkim/key.table', 'w', encoding='utf-8') as f:
         for line in lines:

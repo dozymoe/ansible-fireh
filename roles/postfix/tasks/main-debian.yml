@@ -1,4 +1,5 @@
-- apt:
+- name: install postfix
+  apt:
     name:
       - postfix
       - postfix-pgsql

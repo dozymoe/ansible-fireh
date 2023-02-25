@@ -9,18 +9,6 @@
     - /etc/acme/config
     - /etc/acme/renew.d
 
-- copy:
-    dest: /etc/acme/renew-hook
-    content: |
-        #!/bin/sh
-        echo $* >> /tmp/acme-sh-renew-hook-arguments
-
-        chmod g=,o= /etc/acme/certs/*/*.key
-        run-parts /etc/acme/renew.d
-
-    mode: u=rwx,g=rx,o=
-  become: true
-
 - git:
     dest: /opt/acme.sh
     repo: https://github.com/acmesh-official/acme.sh
@@ -44,86 +32,49 @@
 - command:
     cmd: >
         /bin/sh /opt/acme.sh/acme.sh
-        --log --debug
-        --home /etc/acme --cert-home /etc/acme/certs
-        --config-home /etc/acme/config
-        --renew-hook /etc/acme/renew-hook
-        --issue --dns {{managed_domains[managed_domain].acme_provider}}
-        --dnssleep 300
-        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
+        --issue
         --email {{ssl_account_email}}
+        --dns {{managed_domains[managed_domain].acme_provider}}
+        --home /etc/acme
+        --cert-home /etc/acme/certs
+        --config-home /etc/acme/config
+        --dnssleep 300
+        --log --debug
+        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
 
     #--test
-    creates: /etc/acme/certs/{{cert_name}}/fullchain.cer
   become: true
+  ignore_errors: true
   environment: "{{managed_domains[managed_domain].environment}}"
   when: verification == "dns"
+
+- command:
+    cmd: >
+        /bin/sh /opt/acme.sh/acme.sh
+        --issue
+        --email {{ssl_account_email}}
+        -w /var/www/html
+        --home /etc/acme
+        --cert-home /etc/acme/certs
+        --config-home /etc/acme/config
+        --log --debug
+        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
+
+    #--test
+  become: true
+  ignore_errors: true
+  when: verification == "webroot"
 
 
 - command:
     cmd: >
         /bin/sh /opt/acme.sh/acme.sh
-        --log --debug
-        --home /etc/acme --cert-home /etc/acme/certs
+        --install-cert
+        --home /etc/acme
+        --cert-home /etc/acme/certs
         --config-home /etc/acme/config
-        --renew-hook /etc/acme/renew-hook
-        --issue -w /var/www/html
-        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
-        --email {{ssl_account_email}}
-
-    #--test
-    creates: /etc/acme/certs/{{cert_name}}/fullchain.cer
+        --fullchain-file '/etc/ssl/certs/{{cert_name}}.pem'
+        --key-file '/etc/ssl/private/{{cert_name}}.key'
+        --reloadcmd 'run-parts /etc/acme/renew.d'
+        -d '{{cert_name}}'
   become: true
-  when: verification == "webroot"
-
-
-#- file:
-#    path: /root/bin
-#    state: directory
-#  become: true
-#
-#
-#- template:
-#    src: "{{provider}}-dns-auth.j2"
-#    dest: /root/bin/certbot-{{provider}}-dns-auth
-#    mode: u=rwx,g=rx,o=
-#  become: true
-#
-#- template:
-#    src: "{{provider}}-dns-cleanup.j2"
-#    dest: /root/bin/certbot-{{provider}}-dns-cleanup
-#    mode: u=rwx,g=rx,o=
-#  become: true
-#
-#- template:
-#    src: create_letsencrypt_cert.j2
-#    dest: /root/bin/create-{{provider}}-letsencrypt-cert
-#    mode: u=rwx,g=rx,o=
-#  become: true
-#
-#
-#- copy:
-#    dest: /tmp/letsencrypt.txta
-#    content: >
-#        certbot certonly --agree-tos --email {{ssl_account_email}}
-#        --cert-name {{cert_name}}
-#        --preferred-challenges dns-01 --non-interactive
-#        --manual
-#        --manual-auth-hook /root/bin/certbot-{{provider}}-dns-auth
-#        --manual-cleanup-hook /root/bin/certbot-{{provider}}-dns-cleanup
-#        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
-#        --test-cert --dry-run
-#  become: true
-#
-#- command:
-#    cmd: >
-#        certbot certonly --agree-tos --email {{ssl_account_email}}
-#        --cert-name {{cert_name}}
-#        --preferred-challenges dns-01 --non-interactive
-#        --manual
-#        --manual-auth-hook /root/bin/certbot-{{provider}}-dns-auth
-#        --manual-cleanup-hook /root/bin/certbot-{{provider}}-dns-cleanup
-#        {% for domain in domains -%} -d '{{domain}}' {% endfor %}
-#        --test-cert --dry-run
-#    creates: /etc/letsencrypt/renewal/{{cert_name}}.conf
-#  become: true

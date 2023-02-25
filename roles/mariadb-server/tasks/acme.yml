@@ -1,8 +1,8 @@
 - include_tasks: acme-{{ansible_distribution|lower}}.yml
 
 - copy:
+    src: "{{item.src}}"
     dest: "{{mysql_config_dir}}/{{item.dest}}"
-    src: /etc/acme/certs/{{cert_name}}/{{item.src}}
     mode: "{{item.mode}}"
     remote_src: yes
     owner: mysql
@@ -10,46 +10,9 @@
   become: true
   notify: reload mysql ({{ansible_distribution|lower}})
   with_items:
-    - dest: server.crt
-      src: fullchain.cer
+    - src: /etc/ssl/certs/{{cert_name}}.pem
+      dest: server.crt
       mode: u=rw,g=r,o=
-    - dest: server.key
-      src: "{{cert_name}}.key"
+    - src: /etc/ssl/private/{{cert_name}}.key
+      dest: server.key
       mode: u=rw,g=,o=
-
-
-#- copy:
-#    dest: /etc/letsencrypt/renewal-hooks/deploy/mysql.sh
-#    content: |
-#      #!/bin/sh
-#      umask 0177
-#      cp /etc/letsencrypt/live/{{mysql_ssl_certname}}/fullchain.pem {{mysql_config_dir}}/server.crt
-#      cp /etc/letsencrypt/live/{{mysql_ssl_certname}}/privkey.pem {{mysql_config_dir}}/server.key
-#      chown postgres:postgres {{mysql_config_dir}}/server.crt {{mysql_config_dir}}/server.key
-#      /etc/init.d/mysql reload
-#    mode: u=rwx,g=r,o=
-#  become: true
-#
-#
-#- copy:
-#    dest: "{{mysql_config_dir}}/server.key"
-#    src: /etc/letsencrypt/live/{{mysql_ssl_certname}}/privkey.pem
-#    remote_src: yes
-#    owner: mysql
-#    group: mysql
-#    mode: u=r,g=,o=
-#    follow: true
-#  become: true
-#  notify: reload mysql ({{ansible_distribution | lower}})
-#
-#
-#- copy:
-#    dest: "{{mysql_config_dir}}/server.crt"
-#    src: /etc/letsencrypt/live/{{mysql_ssl_certname}}/fullchain.pem
-#    remote_src: yes
-#    owner: mysql
-#    group: mysql
-#    mode: u=r,g=r,o=
-#    follow: true
-#  become: true
-#  notify: reload mysql ({{ansible_distribution | lower}})

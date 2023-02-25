@@ -2,12 +2,12 @@
     dest: /etc/acme/renew.d/mysql
     content: |
         #!/bin/sh
-        cp /etc/acme/certs/{{cert_name}}/fullchain.cer {{mysql_config_dir}}/server.crt
-        cp /etc/acme/certs/{{cert_name}}/{{cert_name}}.key {{mysql_config_dir}}/server.key
+        cp /etc/ssl/certs/{{cert_name}}.pem {{mysql_config_dir}}/server.crt
+        cp /etc/ssl/private/{{cert_name}}.key {{mysql_config_dir}}/server.key
         chown mysql:mysql {{mysql_config_dir}}/server.*
         chmod u=rw,g=r,o= {{mysql_config_dir}}/server.crt
         chmod u=rw,g=,o= {{mysql_config_dir}}/server.key
-        /etc/init.d/mysql reload
+        systemctl restart mariadb
 
     mode: u=rwx,g=rx,o=rx
   become: true

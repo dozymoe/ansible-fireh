@@ -1,17 +1,17 @@
 - name: reload mysql (debian)
   service:
-    name: mysql
+    name: mariadb
     state: restarted
   become: true
 
 - name: restart mysql (debian)
   service:
-    name: mysql
+    name: mariadb
     state: restarted
   become: true
 
 - name: stop mysql (debian)
   service:
-    name: mysql
+    name: mariadb
     state: stopped
   become: true

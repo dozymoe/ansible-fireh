@@ -5,6 +5,6 @@
     rule: allow
     direction: in
     proto: udp
-    port: 60001:60099
+    port: 60001:60020
     comment: mosh
   become: true

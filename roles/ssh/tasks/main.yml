@@ -72,3 +72,19 @@
           PubkeyAuthentication yes
   become: true
   notify: reload ssh ({{ansible_distribution|lower}})
+
+
+- blockinfile:
+    dest: /etc/ssh/sshd_config
+    marker: "# {mark} login_users"
+    content: |
+      {% for user in ssh_login_users %}
+      Match User {{user}}
+          X11Forwarding yes
+          AllowTcpForwarding yes
+          PasswordAuthentication yes
+          PubkeyAuthentication yes
+      {% endfor %}
+  become: true
+  notify: reload ssh ({{ansible_distribution|lower}})
+  when: ssh_login_users is defined

@@ -4,3 +4,9 @@
       - fail2ban
     state: latest
   become: true
+
+- lineinfile:
+    path: /etc/fail2ban/jail.d/defaults-debian.conf
+    insertafter: [sshd]
+    line: mode = aggressive
+  become: true

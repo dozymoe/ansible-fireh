@@ -1,0 +1,13 @@
+- copy:
+    dest: /etc/acme/renew.d/nginx-{{app}}
+    content: |
+        #!/bin/sh
+        cp /etc/ssl/certs/{{cert_name}}.pem /etc/ssl/nginx/{{cert_name}}.pem
+        cp /etc/ssl/private/{{cert_name}}.key /etc/ssl/nginx/{{cert_name}}.key
+        chown {{www_unix_user}}:{{www_unix_group}} /etc/ssl/nginx/{{cert_name}}.*
+        chmod u=rw,g=r,o= /etc/ssl/nginx/{{cert_name}}.pem
+        chmod u=rw,g=,o= /etc/ssl/nginx/{{cert_name}}.key
+        systemctl reload nginx
+
+    mode: u=rwx,g=rx,o=rx
+  become: true

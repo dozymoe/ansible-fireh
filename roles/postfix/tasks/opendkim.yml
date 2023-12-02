@@ -90,25 +90,28 @@
   become: true
 
 
-- name: opendkim signin table
-  copy:
-    dest: /etc/opendkim/signing.table
-    content: |
-        {% for domain in mta_managed_domains -%}
-        *@{{domain}} {{domain}}
-        {% endfor %}
-    owner: "{{opendkim_unix_user}}"
-    group: "{{opendkim_unix_group}}"
-  become: true
-  notify: restart opendkim ({{ansible_distribution|lower}})
+#- name: opendkim signin table
+#  copy:
+#    dest: /etc/opendkim/signing.table
+#    content: |
+#        {% for domain in mta_managed_domains -%}
+#        *@{{domain}} {{domain}}
+#        {% endfor %}
+#    owner: "{{opendkim_unix_user}}"
+#    group: "{{opendkim_unix_group}}"
+#  become: true
+#  notify: restart opendkim ({{ansible_distribution|lower}})
 
 
 - file:
-    path: /etc/opendkim/key.table
+    path: /etc/opendkim/{{item}}
     owner: "{{opendkim_unix_user}}"
     group: "{{opendkim_unix_group}}"
     state: touch
   become: true
+  with_items:
+    - key.table
+    - signing.table
 
 
 - name: opendkim data files

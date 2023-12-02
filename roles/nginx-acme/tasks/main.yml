@@ -1,6 +1,8 @@
+- include_tasks: main-{{ansible_distribution|lower}}.yml
+
 - copy:
     dest: /etc/ssl/nginx/{{item.dest}}
-    src: /etc/acme/certs/{{cert_name}}/{{item.src}}
+    src: /etc/ssl/{{item.src}}
     mode: "{{item.mode}}"
     remote_src: yes
     owner: "{{www_unix_user}}"
@@ -9,23 +11,8 @@
   notify: reload nginx ({{ansible_distribution|lower}})
   with_items:
     - dest: "{{cert_name}}.pem"
-      src: fullchain.cer
+      src: certs/{{cert_name}}.pem
       mode: u=rw,g=r,o=
     - dest: "{{cert_name}}.key"
-      src: "{{cert_name}}.key"
+      src: private/{{cert_name}}.key
       mode: u=rw,g=,o=
-
-
-- copy:
-    dest: /etc/acme/renew.d/nginx-{{app}}
-    content: |
-        #!/bin/sh
-        cp /etc/acme/certs/{{cert_name}}/fullchain.cer /etc/ssl/nginx/{{cert_name}}.pem
-        cp /etc/acme/certs/{{cert_name}}/{{cert_name}}.key /etc/ssl/nginx/{{cert_name}}.key
-        chown {{www_unix_user}}:{{www_unix_group}} /etc/ssl/nginx/{{cert_name}}.*
-        chmod u=rw,g=r,o= /etc/ssl/nginx/{{cert_name}}.pem
-        chmod u=rw,g=,o= /etc/ssl/nginx/{{cert_name}}.key
-        /etc/init.d/nginx reload
-
-    mode: u=rwx,g=rx,o=rx
-  become: true

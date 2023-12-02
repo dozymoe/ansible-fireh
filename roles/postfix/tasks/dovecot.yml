@@ -5,8 +5,6 @@
   vars:
     user: mta
 
-- import_tasks: acme.yml
-
 
 - name: setup dovecot dhparams
   command: openssl dhparam -out /etc/dovecot/dh.pem 4096

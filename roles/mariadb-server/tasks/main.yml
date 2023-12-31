@@ -6,6 +6,36 @@
 - import_tasks: acme.yml
   when: mysql_ssl_provider == 'letsencrypt'
 
+- copy:
+    src: "{{mysql_ssl_certfile}}"
+    dest: "{{mysql_config_dir}}/server.crt"
+    owner: mysql
+    group: mysql
+    mode: o=rw,g=r,o=r
+  become: true
+  when: mysql_ssl_provider == 'file'
+
+- copy:
+    src: "{{mysql_ssl_keyfile}}"
+    dest: "{{mysql_config_dir}}/server.key.pkcs8"
+    owner: mysql
+    group: mysql
+    mode: o=rw,g=,o=
+  become: true
+  when: mysql_ssl_provider == 'file'
+
+- command: openssl rsa -in /etc/mysql/server.key.pkcs8 -out /etc/mysql/server.key
+  become: true
+  when: mysql_ssl_provider == 'file'
+
+- file:
+    path: /etc/mysql/server.key
+    owner: mysql
+    group: mysql
+    mode: o=rw,g=,o=
+  become: true
+  when: mysql_ssl_provider == 'file'
+
 - lineinfile:
     path: "{{mysql_config_dir}}/mariadb.conf.d/50-server.cnf"
     line: "{{item.line}}"

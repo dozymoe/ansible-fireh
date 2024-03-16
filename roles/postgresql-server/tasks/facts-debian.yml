@@ -1,1 +1,11 @@
-facts-ubuntu.yml
+- name: postgresql debian facts
+  set_fact:
+    postgresql_config_dir: /etc/postgresql/{{postgresql_version}}/main
+    postgresql_share_dir: /usr/share/postgresql/{{postgresql_version}}
+    postgresql_lib_dir: /usr/lib/postgresql/{{postgresql_version}}
+    postgresql_home_dir: /var/lib/postgresql
+
+- name: postgresql debian facts
+  set_fact:
+    postgresql_data_dir: /var/lib/postgresql/{{postgresql_version}}/main
+  when: postgresql_data_dir is undefined

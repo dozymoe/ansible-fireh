@@ -1,0 +1,40 @@
+## See "/usr/share/doc/etcd-server/op-guide/configuration.md.gz"
+## for available options.
+##
+## Use environment to override, for example: ETCD_NAME=default
+
+ETCD_DATA_DIR="{{ data_dir }}"
+
+# Member
+
+ETCD_LISTEN_PEER_URLS="https://{{ ansible_host }}:2380"
+ETCD_LISTEN_CLIENT_URLS="https://localhost:2379,https://{{ ansible_host }}:2379"
+ETCD_NAME="{{ etcd_id }}"
+
+# Clustering
+
+ETCD_INITIAL_ADVERTISE_PEER_URLS="https://{{ ansible_host }}:2380"
+ETCD_INITIAL_CLUSTER="{{ cluster_items_url }}"
+ETCD_ADVERTISE_CLIENT_URLS="https://{{ ansible_host }}:2379"
+ETCD_INITIAL_CLUSTER_TOKEN="{{ etcd_cluster_token }}"
+ETCD_INITIAL_CLUSTER_STATE="new"
+
+# TLS
+
+ETCD_CERT_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+ETCD_KEY_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+ETCD_TRUSTED_CA_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+ETCD_AUTO_TLS=false
+ETCD_CLIENT_CERT_AUTH=true
+#ETCD_CLIENT_CERT_ALLOWED_HOSTNAME="{{ cert_client_hostnames }}"
+
+ETCD_PEER_CERT_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+ETCD_PEER_KEY_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+ETCD_PEER_TRUSTED_CA_FILE="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+ETCD_PEER_AUTO_TLS=false
+ETCD_PEER_CLIENT_CERT_AUTH=true
+#ETCD_PEER_CERT_ALLOWED_CN="{{ cert_server_hostnames }}"
+#ETCD_PEER_CERT_ALLOWED_HOSTNAME="{{ cert_server_hostnames }}"
+
+ETCD_HEARTBEAT_INTERVAL=1000
+ETCD_ELECTION_TIMEOUT=5000

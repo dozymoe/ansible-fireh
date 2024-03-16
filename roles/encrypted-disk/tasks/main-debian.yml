@@ -1,0 +1,6 @@
+- apt:
+    name:
+      - cryptsetup
+      - util-linux
+    state: latest
+  become: true

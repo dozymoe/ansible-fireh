@@ -1,0 +1,7 @@
+- apt:
+    name:
+      - easy-rsa
+      - openvpn
+      - python3-pexpect
+    state: latest
+  become: true

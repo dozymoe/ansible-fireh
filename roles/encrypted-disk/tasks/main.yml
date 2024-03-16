@@ -1,0 +1,51 @@
+- include_tasks: main-{{ansible_distribution | lower}}.yml
+
+- name: create mount directories
+  file:
+    path: "{{item.mount_dir}}"
+    state: directory
+  become: true
+  loop: "{{disks}}"
+
+- name: create LUKS keyfile
+  copy:
+    dest: /root/.luks-{{item.name}}.key
+    content: "{{item.password}}"
+    mode: g=,o=
+  become: true
+  loop: "{{disks}}"
+
+- name: create LUKS device
+  luks_device:
+    name: "{{item.name}}"
+    device: "{{item.device}}"
+    keyfile: /root/.luks-{{item.name}}.key
+    state: opened
+  become: true
+  loop: "{{disks}}"
+
+- name: create filesystem
+  filesystem:
+    dev: /dev/mapper/{{item.name}}
+    fstype: "{{item.fstype}}"
+  become: true
+  loop: "{{disks}}"
+
+- name: update crypttab
+  crypttab:
+    name: "{{item.name}}"
+    backing_device: "{{item.device}}"
+    password: /root/.luks-{{item.name}}.key
+    state: present
+  become: true
+  loop: "{{disks}}"
+
+- name: update fstab
+  mount:
+    path: "{{item.mount_dir}}"
+    src: /dev/mapper/{{item.name}}
+    fstype: "{{item.fstype}}"
+    boot: true
+    state: mounted
+  become: true
+  loop: "{{disks}}"

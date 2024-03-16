@@ -1,0 +1,15 @@
+- apt:
+    name:
+      - etcd-client
+      - etcd-server
+    state: latest
+  become: true
+
+- service:
+    name: "{{item}}"
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  with_items:
+    - etcd
+  ignore_errors: true

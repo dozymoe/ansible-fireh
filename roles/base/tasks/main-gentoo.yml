@@ -87,7 +87,6 @@
       - sys-process/cronie
 
       - app-admin/xtail
-      - app-misc/ranger
       - app-misc/tmux
       - sys-process/htop
       - dev-python/pexpect
@@ -106,7 +105,6 @@
       - sys-process/cronie
 
       - app-admin/xtail
-      - app-misc/ranger
       - app-misc/tmux
       - sys-process/htop
       - dev-python/pexpect

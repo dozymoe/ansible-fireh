@@ -1,0 +1,67 @@
+- name: Create the list
+  set_fact:
+    new_items: "{{ hostvars[item]['etcd_id'] }}=https://{{ item }}:2380"
+  with_items: "{{ rds_hosts }}"
+  register: new_items_reg
+
+- name: Extract items and turn into a list
+  set_fact:
+    cluster_items_url: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
+
+- name: Create the list
+  set_fact:
+    new_items: "{{ hostvars[item]['hostname'] }}"
+  with_items: "{{ rds_hosts }}"
+  register: new_items_reg
+
+- name: Extract items and turn into a list
+  set_fact:
+    cert_client_hostnames: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
+
+- name: Create the list
+  set_fact:
+    new_items: "{{ hostvars[item]['hostname'] }}"
+  with_items: "{{ rds_hosts }}"
+  register: new_items_reg
+
+- name: Extract items and turn into a list
+  set_fact:
+    cert_server_hostnames: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
+
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- file:
+    path: "{{ data_dir }}"
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: u=rwx,g=,o=
+  become: true
+
+- unarchive:
+    dest: "{{ data_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    owner: etcd
+    group: etcd
+  become: true
+
+- name: Setup etcd
+  template:
+    dest: /etc/default/etcd
+    src: etcd.j2
+  become: true
+  notify: restart etcd ({{ ansible_distribution | lower }})
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: etcd
+  become: true
+  with_items:
+    - "2379"
+    - "2380"

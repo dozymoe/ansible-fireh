@@ -1,0 +1,32 @@
+- stat:
+    path: "{{ work_dir }}/pki/issued/{{ common_name }}.{{ base_name }}.crt"
+  become: true
+  register: test_stat
+
+- file:
+    path: "{{ work_dir }}/pki/private/{{ common_name }}.{{ base_name }}.key"
+    state: absent
+  become: true
+  when: not test_stat.stat.exists
+
+- file:
+    path: "{{ work_dir }}/pki/reqs/{{ common_name }}.{{ base_name }}.req"
+    state: absent
+  become: true
+  when: not test_stat.stat.exists
+
+- expect:
+    command: "{{ work_dir }}/easyrsa gen-req {{ common_name }}.{{ base_name }} nopass"
+    chdir: "{{ work_dir }}"
+    responses:
+      "Common Name \\(eg:": "{{ common_name }}"
+  become: true
+  when: not test_stat.stat.exists
+
+- expect:
+    command: "{{ work_dir }}/easyrsa sign-req client {{ common_name }}.{{ base_name }}"
+    chdir: "{{ work_dir }}"
+    responses:
+      "Confirm request details:": "yes"
+  become: true
+  when: not test_stat.stat.exists

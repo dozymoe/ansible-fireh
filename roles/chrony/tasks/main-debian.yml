@@ -1,0 +1,12 @@
+- apt:
+    name:
+      - chrony
+    state: latest
+  become: true
+
+
+- service:
+    name: chrony
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true

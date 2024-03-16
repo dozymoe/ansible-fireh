@@ -1,0 +1,6 @@
+- include_tasks: cert-client-custom-names.yml
+  vars:
+    common_names: "{{ item.common_names }}"
+  with_items: "{{ item.hosts }}"
+  loop_control:
+    loop_var: host

@@ -1,2 +1,2 @@
 - set_fact:
-    monit_config_dir: /etc/monit/monitrc.d
+    monit_config_dir: /etc/monit/conf.d

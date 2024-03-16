@@ -1,0 +1,97 @@
+- include_tasks: facts.yml
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- name: Create the file to load the watchdog module
+  file:
+    path: /etc/modules-load.d/softdog.conf
+    state: touch
+  become: true
+
+- name: Add the watchdog module
+  command: modprobe softdog
+  become: true
+
+- name: Change ownershhip of the watchdog device
+  command: chown postgres /dev/watchdog
+  become: true
+  #args:
+  #  warn: false
+
+- name: Setup pgpass
+  copy:
+    dest: "{{ postgresql_home_dir }}/.pgpass"
+    content: "*:*:*:postgres:{{ postgres_database_password }}"
+    mode: 0600
+    owner: postgres
+    group: postgres
+  become: true
+
+- file:
+    path: /etc/postgresql/{{ postgresql_version }}/{{ patroni_scope}}
+    state: directory
+    owner: postgres
+    group: postgres
+  become: true
+
+- unarchive:
+    dest: "{{ patroni_config_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/postgres.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/postgres.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/replicator.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/replicator.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/rewind_user.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/rewind_user.{{ hostname }}.key"
+    owner: postgres
+    group: postgres
+  become: true
+
+- file:
+    path: "{{ item }}"
+    owner: postgres
+    group: postgres
+    mode: u=rwx,g=,o=
+    recurse: true
+  become: true
+  with_items:
+    - "{{ data_dir }}/{{ postgresql_version }}"
+    - "{{ data_dir }}/{{ postgresql_version }}/{{ patroni_scope }}"
+
+- template:
+    dest: "{{ patroni_config_dir }}/{{ postgresql_version }}-{{ patroni_scope }}.yml"
+    src: patroni.yml.j2
+  become: true
+
+- locale_gen:
+    name: C.UTF-8
+    state: present
+  become: true
+
+- command: >
+    patroni --validate-config
+    {{ patroni_config_dir }}/{{ postgresql_version }}-{{ patroni_scope }}.yml
+  become: true
+  # Actually will error if PostgreSQL is already running
+  ignore_errors: true
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: postgresql
+  become: true
+  with_items:
+    - "{{ patroni_port }}"
+    - "{{ patroni_api_port }}"
+
+- service:
+    name: patroni@{{ postgresql_version }}-{{ patroni_scope }}
+    enabled: true
+    state: restarted
+  become: true

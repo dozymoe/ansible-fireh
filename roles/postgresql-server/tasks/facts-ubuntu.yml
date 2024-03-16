@@ -1,7 +1,1 @@
-- name: postgresql ubuntu facts
-  set_fact:
-    postgresql_config_dir: /etc/postgresql/{{postgresql_version}}/main
-    postgresql_data_dir: /var/lib/postgresql/{{postgresql_version}}/main
-    postgresql_share_dir: /usr/share/postgresql/{{postgresql_version}}
-    postgresql_lib_dir: /usr/lib/postgresql/{{postgresql_version}}
-    postgresql_home_dir: /var/lib/postgresql
+facts-debian.yml

@@ -1,0 +1,7 @@
+- name: restart zookeeper
+  runit:
+    name: zookeeper
+    service_dir: /etc/service
+    service_src: /etc/sv
+    state: restarted
+  become: true

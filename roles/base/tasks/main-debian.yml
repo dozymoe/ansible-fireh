@@ -15,10 +15,10 @@
 
 - apt:
     name:
+      - aptitude
       - acl
       - net-tools
       - xtail
-      - ranger
       - rsync
       - tmux
       - htop

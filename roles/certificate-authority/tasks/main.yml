@@ -1,0 +1,81 @@
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- command:
+    cmd: make-cadir "{{ work_dir }}"
+    creates: "{{ work_dir }}"
+  become: true
+
+- command:
+    cmd: "{{ work_dir }}/easyrsa init-pki"
+    chdir: "{{ work_dir }}"
+    creates: "{{ work_dir }}/pki"
+  become: true
+
+- stat:
+    path: "{{ work_dir }}/pki/vars"
+  register: test_stat
+  become: true
+
+- copy:
+    dest: "{{ work_dir }}/pki/vars"
+    src: "{{ work_dir }}/vars"
+    remote_src: true
+  become: true
+  when: not test_stat.stat.exists
+
+- file:
+    path: "{{ work_dir }}/vars"
+    state: absent
+  become: true
+
+- command:
+    cmd: "{{ work_dir }}/easyrsa gen-dh"
+    chdir: "{{ work_dir }}"
+    creates: "{{ work_dir }}/pki/dh.pem"
+  become: true
+
+- expect:
+    command: "{{ work_dir }}/easyrsa build-ca nopass"
+    chdir: "{{ work_dir }}"
+    creates: "{{ work_dir }}/pki/ca.crt"
+    responses:
+      "\\[Easy-RSA CA\\]:$": ""
+  become: true
+
+- command:
+    cmd: openvpn --genkey secret {{ work_dir }}/pki/ta.key
+    creates: "{{ work_dir }}/pki/ta.key"
+  become: true
+
+- include_tasks: cert-server.yml
+  with_items: "{{ servers | flatten | unique }}"
+  when: servers is defined
+
+- include_tasks: cert-server-client.yml
+  with_items: "{{ server_clients | flatten | unique }}"
+  when: server_clients is defined
+
+- include_tasks: cert-client.yml
+  with_items: "{{ clients | flatten | unique }}"
+  when: clients is defined
+
+- include_tasks: cert-client-custom.yml
+  with_items: "{{ client_customs }}"
+  when: client_customs is defined
+
+- archive:
+    path: "{{ work_dir }}"
+    dest: /tmp/ca.tar.xz
+    format: xz
+    force_archive: true
+  become: true
+
+- synchronize:
+    src: /tmp/ca.tar.xz
+    dest: "{{ backup_file }}"
+    mode: pull
+
+- file:
+    path: /tmp/ca.tar.xz
+    state: absent
+  become: true

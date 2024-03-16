@@ -1,0 +1,237 @@
+# Debian stable uses patroni v3.0.2
+# See: https://github.com/zalando/patroni/blob/v3.0.2/docs/SETTINGS.rst
+
+name: {{ hostname }}
+namespace: {{ patroni_service | default('/service') }}
+scope: {{ postgresql_version }}-{{ patroni_scope }}
+
+# log:
+#     level: INFO
+#     traceback_level: ERROR
+#     format: "%(asctime)s %(levelname)s: %(message)s"
+#     # dateformat:
+#     max_queue_size: 1000
+#     # dir:
+#     # file_num:
+#     # file_size:
+#     loggers:
+#         patroni.postmaster: WARNING
+#         urllib3: WARNING
+
+# The bootstrap configuration. Works only when the cluster is not yet
+# initialized.
+# If the cluster is already initialized, all changes in the bootstrap section
+# are ignored!
+bootstrap:
+    # This section will be writter in Etcd:/<namespace>/<scope>/config after
+    # initializing new cluster and all other cluster members will use it as a
+    # global configuration.
+    # WARNING! If you want to change any of the parameters that were set up via
+    # bootstrap.dcs section, please use patronictl edit-config!
+    dcs:
+        loop_wait: 10
+        ttl: 30
+        retry_timeout: 10
+        maximum_lag_on_failover: 1048576
+        check_timeline: true
+        # master_start_timeout: 300
+        # maximum_lag_on_syncnode: -1
+        # max_timelines_history: 0
+        # primary_start_timeout: 300
+        # primary_stop_timeout:
+        synchronous_mode: true
+        # synchronous_mode_strict: false
+        # failsafe_mode: false
+        postgresql:
+            use_pg_rewind: true
+            remove_data_directory_on_rewind_failure: true
+            remove_data_directory_on_diverged_timelines: true
+            use_slots: true
+            # recovery_conf:
+            #     restore_command: cp ../wal_archive/%f %p
+            parameters:
+                ssl: on
+                ssl_cert_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
+                ssl_key_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
+                ssl_ca_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+                # wal_level: hot_standby
+                # hot_standby: "on"
+                # max_connections: 100
+                # max_worker_processes: 8
+                # wal_keep_segments: 8
+                # max_wal_senders: 10
+                # max_replication_slots: 10
+                # max_prepared_transactions: 0
+                # max_locks_per_transaction: 64
+                # wal_log_hints: "on"
+                # track_commit_timestamp: "off"
+                # archive_mode: "on"
+                # archive_timeout: 1800s
+                # archive_command: mkdir -p ../wal_archive && test ! -f ../wal_archive/%f && cp %p ../wal_archive/%f
+        # standby_cluster:
+        #     host: 127.0.0.1
+        #     port: 1111
+        #     primary_slot_name: pgha2
+        # slots:
+        # ignore_slots:
+
+    # some desired options for 'initdb'
+    initdb:  # Note: It needs to be a list (some options need values, others are switches)
+        - data-checksums
+        - encoding: UTF8
+    pg_hba:
+        - local     all         all                   peer
+        - hostnossl all         all         0.0.0.0/0 reject
+        - hostssl   all         postgres    0.0.0.0/0 cert
+        - hostssl   all         rewind_user 0.0.0.0/0 cert
+        - hostssl   replication replicator  0.0.0.0/0 cert
+        - hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+        # For kerberos gss based connectivity (discard @.*$)
+        # - host replication replicator 127.0.0.1/32 gss include_realm=0
+        # - host all all 0.0.0.0/0 gss include_realm=0
+    # users:
+    # post_bootstrap:
+
+#zookeeper:
+#    hosts:
+#      {% for host in rds_hosts %}
+#  - {{ host }}:2281
+#      {% endfor %}
+#
+#    use_ssl: true
+#    cacert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+#    cert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt
+#    key: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key
+#    # key_password:
+#    verify: true
+#    # set_acls:
+
+etcd3:
+    # host:
+    hosts:
+      {% for host in rds_hosts %}
+  - {{ host }}:2379
+      {% endfor %}
+
+    # use_proxies:
+    # url:
+    # proxy:
+    # srv:
+    # srv_suffix:
+    protocol: https
+    # username:
+    # password:
+    cacert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+    cert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt
+    key: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key
+
+postgresql:
+    authentication:
+        superuser:
+            username: postgres
+            password: {{ postgres_database_password }}
+            sslkey: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/postgres.{{ hostname }}.key
+            # sslpassword:
+            sslcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/postgres.{{ hostname }}.crt
+            sslrootcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+            # sslcrl:
+            # sslcrldir:
+            # gssencmode:
+            # channel_binding:
+        replication:
+            username: replicator
+            password: {{ postgres_replication_password }}
+            sslkey: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/replicator.{{ hostname }}.key
+            sslcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/replicator.{{ hostname }}.crt
+            sslrootcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+        rewind:  # Has no effect on postgres 10 and lower
+            username: rewind_user
+            password: {{ postgres_rewind_password }}
+            sslkey: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/rewind_user.{{ hostname }}.key
+            sslcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/rewind_user.{{ hostname }}.crt
+            sslrootcert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+    # callbacks:
+    #     on_reload:
+    #     on_restart:
+    #     on_role_change:
+    #     on_start:
+    #     on_stop:
+    connect_address: {{ ansible_host }}:{{ patroni_port | default(5432) }}
+    # The address of connection pool (e.g., pgbouncer) running next to
+    # Patroni/Postgres. Only for service discovery.
+    # proxy_address: 127.0.0.1:5433
+    # create_replica_methods: basebackup
+    data_dir: {{ data_dir }}/{{ postgresql_version }}/{{ patroni_scope }}
+    # Make sure config_dir and data_dir is the same
+    config_dir: {{ data_dir }}/{{ postgresql_version }}/{{ patroni_scope }}
+    bin_dir: {{ postgresql_lib_dir }}/bin
+    listen: 0.0.0.0:{{ patroni_port | default(5432) }}
+    # use_unix_socket: false
+    # use_unix_socket_repl: false
+    # unix_socket_directories: '..'  # parent directory of data_dir
+    pgpass: /tmp/pgpass0
+    # recovery_conf:
+    # custom_conf:
+    parameters:
+        ssl: on
+        ssl_cert_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
+        ssl_key_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
+        ssl_ca_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+        # Fully qualified kerberos ticket file for the running user
+        # same as KRB5CCNAME used by the GSS
+        # krb_server_keyfile: /var/spool/keytabs/postgres
+        # Server side kerberos spn
+        # krbsrvname: postgres
+    pg_hba:
+        - local     all         all                   peer
+        - hostnossl all         all         0.0.0.0/0 reject
+        - hostssl   all         postgres    0.0.0.0/0 cert
+        - hostssl   all         rewind_user 0.0.0.0/0 cert
+        - hostssl   replication replicator  0.0.0.0/0 cert
+        - hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+    # pg_ident:
+    # pg_ctl_timeout: 60
+    use_pg_rewind: true
+    remove_data_directory_on_rewind_failure: true
+    remove_data_directory_on_diverged_timelines: true
+    # replica_method:
+    # Additional fencing script executed after acquiring the leader lock but
+    # before promoting the replica
+    # pre_promote: /path/to/pre_promote.sh
+
+restapi:
+    connect_address: {{ ansible_host }}:{{ patroni_api_port | default(8008) }}
+    listen: 0.0.0.0:{{ patroni_api_port | default(8008) }}
+    authentication:
+        username: "{{ patroni_user }}"
+        password: "{{ patroni_password }}"
+    certfile: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
+    keyfile: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
+    cafile: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+    # ciphers:
+    verify_client: required
+    # allowlist: allow all
+    # allowlist_include_members:
+    # http_extra_headers:
+    # https_extra_headers:
+
+ctl:
+    # Allow connections to Patroni Rest API without verifying certificates
+    insecure: false
+    cacert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+    certfile: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt
+    keyfile: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key
+    # keyfile_password:
+
+watchdog:
+    # Allowed values: off, automatic, required
+    mode: automatic
+    device: /dev/watchdog
+    safety_margin: 5
+
+#tags:
+#    # nofailover: false
+#    # clonefrom: false
+#    # noloadbalance: false
+#    # replicatefrom:
+#    nosync: false

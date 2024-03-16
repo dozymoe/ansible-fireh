@@ -1,0 +1,6 @@
+- include_tasks: cert-client-custom-hosts.yml
+  vars:
+    base_name: "{{ hostvars[host].hostname }}"
+  with_items: "{{ common_names }}"
+  loop_control:
+    loop_var: common_name

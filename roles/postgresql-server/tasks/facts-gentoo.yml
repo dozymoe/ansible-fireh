@@ -5,11 +5,15 @@
 - name: postgresql gentoo facts
   set_fact:
     postgresql_config_dir: /etc/postgresql-{{postgresql_version}}
-    postgresql_data_dir: /var/lib/postgresql/{{postgresql_version}}/data
     postgresql_share_dir: /usr/share/postgresql-{{postgresql_version}}
     postgresql_lib_dir: /usr/lib64/postgresql-{{postgresql_version}}
     postgresql_home_dir: /var/lib/postgresql
     postgresql_current_version: "{{command_eselect_postgresql_show.stdout}}"
+
+- name: postgresql gentoo facts
+  set_fact:
+    postgresql_data_dir: /var/lib/postgresql/{{postgresql_version}}/data
+  when: postgresql_data_dir is undefined
 
 - name: postgresql gentoo facts
   set_fact:

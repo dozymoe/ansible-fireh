@@ -1,0 +1,32 @@
+- apt:
+    name: "{{ item }}"
+    state: latest
+  become: true
+  with_items:
+    - postgresql-common
+    - postgresql-contrib
+
+- name: Disable auto creation of PostgreSQL clusters
+  lineinfile:
+    dest: /etc/postgresql-common/createcluster.conf
+    line: create_main_cluster = false
+    regexp: ".*create_main_cluster.*"
+  become: true
+
+- apt:
+    name:
+      - patroni
+      - postgresql-{{ postgresql_version }}
+      #- python3-kazoo
+      - python3-etcd
+    state: latest
+  become: true
+
+- service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  become: true
+  with_items:
+    - patroni
+    - postgresql

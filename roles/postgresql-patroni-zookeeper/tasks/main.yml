@@ -1,0 +1,201 @@
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.mode | default('u=rwx,g=rx,o=rx') }}"
+  become: true
+  with_items:
+    - path: "{{ data_dir }}"
+      mode: u=rwx,g=,o=
+      owner: zookeeper
+      group: zookeeper
+    - path: /var/log/zookeeper-runit
+    - path: /etc/sv/zookeeper/log
+
+- copy:
+    dest: /etc/sv/zookeeper/log/run
+    content: |
+      #!/bin/sh
+      exec svlogd -tt /var/log/zookeeper-runit
+    mode: u=wrx,g=rx,o=rx
+  become: true
+
+- copy:
+    dest: /etc/sv/zookeeper/run
+    content: |
+      #!/bin/sh
+      JAVA=/usr/bin/java
+      CLASSPATH="/etc/zookeeper/conf:/usr/share/java/zookeeper.jar"
+      JAVA_OPTS="-Xmx{{ zookeeper_heap_size | default('1280m') }}"
+      ZOO_LOG_DIR=/var/log/zookeeper
+      ZOO_LOG4J_PROP=INFO,ROLLINGFILE
+      ZOOMAIN=org.apache.zookeeper.server.quorum.QuorumPeerMain
+      ZOOCFGDIR=/etc/zookeeper/conf
+      ZOOCFG=$ZOOCFGDIR/zoo.cfg
+
+      # Logging
+      CLASSPATH="$CLASSPATH:/usr/share/java/slf4j-api.jar:/usr/share/java/slf4j-simple.jar"
+      # SSL
+      CLASSPATH="$CLASSPATH:/usr/share/java/netty-handler.jar:/usr/share/java/netty-codec.jar"
+      # Admin
+      #CLASSPATH="$CLASSPATH:/usr/share/java/servlet-api.jar"
+
+      #JMXLOCALONLY=true
+      #JAVA_OPTS="$JAVA_OPTS -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.local.only=$JMXLOCALONLY"
+
+      exec 2>&1
+      exec chpst -uzookeeper $JAVA -cp $CLASSPATH $JAVA_OPTS \
+              -Dzookeeper.log.dir=${ZOO_LOG_DIR} \
+              -Dzookeeper.root.logger=${ZOO_LOG4J_PROP} \
+              $ZOOMAIN $ZOOCFG
+    mode: u=wrx,g=rx,o=rx
+  become: true
+  notify: restart zookeeper
+
+- file:
+    dest: "{{ item.dst }}"
+    src: "{{ item.src }}"
+    state: link
+  become: true
+  with_items:
+    - dst: /etc/service/zookeeper
+      src: /etc/sv/zookeeper
+
+- unarchive:
+    dest: "{{ data_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    owner: zookeeper
+    group: zookeeper
+  become: true
+  notify: restart zookeeper
+
+- shell:
+    cmd:  >
+      cat
+      "{{ cert_archive_basedir }}/pki/issued/{{ item }}.crt"
+      "{{ cert_archive_basedir }}/pki/private/{{ item }}.key" >
+      "{{ cert_archive_basedir }}/pki/issued/pair.{{ item }}.pem"
+    chdir: "{{ data_dir }}"
+  become: true
+  with_items:
+    - sc.{{ hostname }}
+
+- file:
+    path: "{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/pair.{{ item }}.pem"
+    owner: zookeeper
+    group: zookeeper
+    mode: u=rw,g=,o=
+  become: true
+  with_items:
+    - sc.{{ hostname }}
+
+- lineinfile:
+    path: /etc/zookeeper/conf/zoo.cfg
+    line: "{{ item.line }}"
+    regexp: "{{ item.regx }}"
+  with_items:
+    - line: tickTime=2000
+      regx: "#?tickTime\\s*="
+    - line: dataDir={{ data_dir }}
+      regx: "#?dataDir\\s*="
+    - line: dataLogDir=/var/lib/zookeeper
+      regx: "#?dataLogDir\\s*="
+    - line: "#clientPort=2181"
+      regx: "#?clientPort\\s*="
+    - line: maxClientCnxns=60
+      regx: "#?maxClientCnxns\\s*="
+    - line: autopurge.snapRetainCount=3
+      regx: "#?autopurge\\.snapRetainCount\\s*="
+    - line: autopurge.purgeInterval=1
+      regx: "#?autopurge\\.purgeInterval\\s*="
+    - line: initLimit=10
+      regx: "#?initLimit\\s*="
+    - line: syncLimit=5
+      regx: "#?syncLimit\\s*="
+    - line: standaloneEnabled=false
+      regx: "#?standaloneEnabled\\s*="
+
+    - line: admin.enableServer=false
+      regx: "#?admin.enableServer\\s*="
+    - line: admin.serverPort=9191
+      regx: "#?admin.serverPort\\s*="
+
+    - line: "secureClientPort=2281"
+      regx: "#?secureClientPort\\s*="
+    - line: clientCnxnSocket=org.apache.zookeeper.ClientCnxnSocketNetty
+      regx: "#?clientCnxnSocket\\s*="
+    - line: serverCnxnFactory=org.apache.zookeeper.server.NettyServerCnxnFactory
+      regx: "#?serverCnxnFactory\\s*="
+    - line: "client.secure=true"
+      regx: "#?client\\.secure\\s*="
+    - line: "ssl.keyStore.location={{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/pair.sc.{{ hostname }}.pem"
+      regx: "#?ssl\\.keyStore\\.location\\s*="
+    - line: "ssl.keyStore.password="
+      regx: "#?ssl\\.keyStore\\.password\\s*="
+    - line: "ssl.keyStore.type=PEM"
+      regx: "#?ssl\\.keyStore\\.type\\s*="
+    - line: "ssl.trustStore.location={{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+      regx: "#?ssl\\.trustStore\\.location\\s*="
+    - line: "ssl.trustStore.password="
+      regx: "#?ssl\\.trustStore\\.password\\s*="
+    - line: "ssl.trustStore.type=PEM"
+      regx: "#?ssl\\.trustStore\\.type\\s*="
+    - line: "ssl.hostnameVerification=false"
+      regx: "#?ssl\\.hostnameVerification\\s*="
+
+    - line: "sslQuorum=true"
+      regx: "#?sslQuorum\\s*="
+    - line: "#quorumListenOnAllIPs=true"
+      regx: "#?quorumListenOnAllIPs\\s*="
+    - line: "ssl.quorum.keyStore.location={{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/pair.sc.{{ hostname }}.pem"
+      regx: "#?ssl\\.quorum\\.keyStore\\.location\\s*="
+    - line: "ssl.quorum.keyStore.password="
+      regx: "#?ssl\\.quorum\\.keyStore\\.password\\s*="
+    - line: "ssl.quorum.trustStore.location={{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+      regx: "#?ssl\\.quorum\\.trustStore\\.location\\s*="
+    - line: "ssl.quorum.trustStore.password="
+      regx: "#?ssl\\.quorum\\.trustStore\\.password\\s*="
+    - line: "ssl.quorum.keyStore.type=PEM"
+      regx: "#?ssl\\.quorum\\.keyStore\\.type\\s*="
+    - line: "ssl.quorum.trustStore.type=PEM"
+      regx: "#?ssl\\.quorum\\.trustStore\\.type\\s*="
+    - line: "ssl.quorum.hostnameVerification=false"
+      regx: "#?ssl\\.quorum\\.hostnameVerification\\s*="
+  become: true
+  notify: restart zookeeper
+
+- blockinfile:
+    path: /etc/zookeeper/conf/zoo.cfg
+    marker: "# {mark} servers"
+    content: |
+      {% for host in rds_hosts %}
+      server.{{ hostvars[host].zookeeper_id }}={{ host }}:2888:3888
+      {% endfor %}
+  become: true
+  notify: restart zookeeper
+
+- copy:
+    dest: "{{ data_dir }}/myid"
+    content: "{{ zookeeper_id }}"
+  become: true
+  notify: restart zookeeper
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: any
+    comment: zookeeper
+  become: true
+  with_items:
+    #- "2181"
+    - "2281"
+    - "2888"
+    - "3888"
+    #- "9191"

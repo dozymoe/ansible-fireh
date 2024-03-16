@@ -2,6 +2,21 @@
     name: "{{timezone}}"
   become: true
 
+- name: setup apt sources
+  copy:
+    dest: /etc/apt/sources.list
+    content: |
+      deb {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable main
+      #deb {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable-security main
+      deb {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable-updates main
+      deb-src {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable main
+      #deb-src {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable-security main
+      deb-src {{lookup('vars', 'debian_mirror', default='http://deb.debian.org/debian')}} stable-updates main
+  become: true
+
+- command: dpkg --configure -a
+  become: true
+
 
 - name: update cache of apt
   apt:

@@ -7,8 +7,8 @@ ETCD_DATA_DIR="{{ data_dir }}"
 
 # Member
 
-ETCD_LISTEN_PEER_URLS="https://{{ ansible_host }}:2380"
-ETCD_LISTEN_CLIENT_URLS="https://localhost:2379,https://{{ ansible_host }}:2379"
+ETCD_LISTEN_PEER_URLS="https://0.0.0.0:2380"
+ETCD_LISTEN_CLIENT_URLS="https://0.0.0.0:2379"
 ETCD_NAME="{{ etcd_id }}"
 
 # Clustering

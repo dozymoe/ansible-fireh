@@ -1,7 +1,7 @@
 - include_tasks: main-{{ansible_distribution|lower}}.yml
 
 - copy:
-    dest: /etc/ssl/nginx/{{item.dest}}
+    dest: /etc/nginx/{{item.dest}}
     src: /etc/ssl/{{item.src}}
     mode: "{{item.mode}}"
     remote_src: yes

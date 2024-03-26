@@ -54,6 +54,7 @@ bootstrap:
                 ssl_cert_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
                 ssl_key_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
                 ssl_ca_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+                password_encryption: scram-sha-256
                 # wal_level: hot_standby
                 # hot_standby: "on"
                 # max_connections: 100
@@ -85,7 +86,8 @@ bootstrap:
         - hostssl   all         postgres    0.0.0.0/0 cert
         - hostssl   all         rewind_user 0.0.0.0/0 cert
         - hostssl   replication replicator  0.0.0.0/0 cert
-        - hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+        #- hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+        - hostssl   all         +users      0.0.0.0/0 md5 clientcert=verify-ca
         # For kerberos gss based connectivity (discard @.*$)
         # - host replication replicator 127.0.0.1/32 gss include_realm=0
         # - host all all 0.0.0.0/0 gss include_realm=0
@@ -177,6 +179,7 @@ postgresql:
         ssl_cert_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
         ssl_key_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
         ssl_ca_file: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+        password_encryption: scram-sha-256
         # Fully qualified kerberos ticket file for the running user
         # same as KRB5CCNAME used by the GSS
         # krb_server_keyfile: /var/spool/keytabs/postgres
@@ -188,7 +191,8 @@ postgresql:
         - hostssl   all         postgres    0.0.0.0/0 cert
         - hostssl   all         rewind_user 0.0.0.0/0 cert
         - hostssl   replication replicator  0.0.0.0/0 cert
-        - hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+        #- hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
+        - hostssl   all         +users      0.0.0.0/0 md5 clientcert=verify-ca
     # pg_ident:
     # pg_ctl_timeout: 60
     use_pg_rewind: true

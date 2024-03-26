@@ -63,7 +63,7 @@ driver = pgsql
 #   connect = host=sql.example.com dbname=virtual user=virtual password=blarg
 #   connect = /etc/dovecot/authdb.sqlite
 #
-connect = host={{postgresql_host|default(gateway)}} dbname={{mta_database_name}} user={{mta_database_user}} password={{mta_database_password}}
+connect = host={{ postgresql_host|default(gateway) }} port={{ postgresql_secondary_port | default(postgresql_port) }} dbname={{ mta_database_name }} user={{ mta_database_user }} password={{ mta_database_password }} sslcert=/etc/dovecot/ca/pki/issued/{{ mta_database_user }}.{{ hostname }}.crt sslkey=/etc/dovecot/ca/pki/private/{{ mta_database_user }}.{{ hostname }}.key sslrootcert=/etc/dovecot/ca/pki/ca.crt sslmode=verify-ca
 
 # Default password scheme.
 #

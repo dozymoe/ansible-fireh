@@ -1,10 +1,15 @@
 - include_tasks: dovecot-{{ansible_distribution|lower}}.yml
 
-- include_role:
-    name: project-user
-  vars:
-    user: mta
-
+- unarchive:
+    dest: /etc/dovecot
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/{{ mta_database_user}}.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/{{ mta_database_user}}.{{ hostname }}.key"
+    owner: dovecot
+    group: dovecot
+  become: true
 
 - name: setup dovecot dhparams
   command: openssl dhparam -out /etc/dovecot/dh.pem 4096

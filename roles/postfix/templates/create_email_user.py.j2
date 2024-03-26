@@ -5,13 +5,7 @@ from passlib.hash import argon2
 import psycopg2
 import sys
 
-conn_args = 'postgresql://%s:%s@%s:%s/%s' % (
-    '{{mta_database_user}}',
-    '{{mta_database_password}}',
-    '{{postgresql_host}}',
-    '{{postgresql_port|default(5432)}}',
-    '{{mta_database_name}}',
-)
+conn_args = 'host={{ postgresql_host|default(gateway) }} port={{ postgresql_port }} dbname={{ mta_database_name }} user={{ mta_database_user }} password={{ mta_database_password }} sslcert=/etc/dovecot/ca/pki/issued/{{ mta_database_user }}.{{ hostname }}.crt sslkey=/etc/dovecot/ca/pki/private/{{ mta_database_user }}.{{ hostname }}.key sslrootcert=/etc/dovecot/ca/pki/ca.crt sslmode=verify-ca'
 
 email = sys.argv[1]
 password = getpass()

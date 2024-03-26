@@ -14,8 +14,6 @@
 - name: Change ownershhip of the watchdog device
   command: chown postgres /dev/watchdog
   become: true
-  #args:
-  #  warn: false
 
 - name: Setup pgpass
   copy:

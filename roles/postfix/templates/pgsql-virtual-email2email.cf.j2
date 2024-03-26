@@ -1,5 +1,11 @@
 user = {{mta_database_user}}
 password = {{mta_database_password}}
 hosts = {{postgresql_host}}
+port = {{ postgresql_secondary_port | default(postgresql_port) }}
 dbname = {{mta_database_name}}
 query = SELECT email FROM virtual_users WHERE email='%s'
+
+tls_cert_file = /etc/postfix/ca/pki/issued/{{ mta_database_user }}.{{ hostname }}.crt
+tls_key_file = /etc/postfix/ca/pki/private/{{ mta_database_user }}.{{ hostname }}.crt
+tls_CAfile = /etc/postfix/ca/pki/ca.crt
+tls_verify_cert = yes

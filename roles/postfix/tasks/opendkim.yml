@@ -6,8 +6,12 @@
     marker: '# {mark} opendkim'
     dest: /etc/hosts
     content: |
+      {% if ipv4 %}
       {{ipv4}}  {{mta_hostname}}
+      {% endif %}
+      {% if ipv6 %}
       {{ipv6}}  {{mta_hostname}}
+      {% endif %}
   become: true
 
 
@@ -78,8 +82,12 @@
         ::1
         localhost
         {{hostname}}
+        {% if ipv4 %}
         {{ipv4}}
+        {% endif %}
+        {% if ipv6 %}
         {{ipv6}}
+        {% endif %}
         {% for domain in mta_managed_domains -%}
         {{domain}}
         {% endfor %}

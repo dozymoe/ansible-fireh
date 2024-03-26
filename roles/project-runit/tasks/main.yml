@@ -3,12 +3,12 @@
     state: directory
   become: true
   with_items:
-    - /etc/service/user-{{user}}/log
+    - /etc/sv/user-{{user}}/log
     - /var/log/user-{{user}}
 
 
 - copy:
-    dest: /etc/service/user-{{user}}/run
+    dest: /etc/sv/user-{{user}}/run
     content: |
       #!/bin/sh
       exec 2>&1
@@ -36,7 +36,7 @@
   become: true
 
 - copy:
-    dest: /etc/service/user-{{user}}/log/run
+    dest: /etc/sv/user-{{user}}/log/run
     content: |
       #!/bin/sh
       exec svlogd -tt /var/log/user-{{user}}/
@@ -56,7 +56,7 @@
 
 
 - file:
-    dest: /var/service/user-{{user}}
-    src: /etc/service/user-{{user}}
+    dest: /etc/service/user-{{user}}
+    src: /etc/sv/user-{{user}}
     state: link
   become: true

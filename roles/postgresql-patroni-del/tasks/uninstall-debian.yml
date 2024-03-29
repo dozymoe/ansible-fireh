@@ -1,0 +1,12 @@
+- apt:
+    name:
+      - patroni
+      - postgresql-{{ postgresql_version }}
+      - postgresql-common
+      - postgresql-contrib
+      #- python3-kazoo
+      - python3-etcd
+    state: absent
+    autoremove: true
+    purge: true
+  become: true

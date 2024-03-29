@@ -1,0 +1,9 @@
+- name: Create the list
+  set_fact:
+    new_items: "{{ item }}:2379"
+  with_items: "{{ rds_hosts }}"
+  register: new_items_reg
+
+- name: Extract items and turn into a list
+  set_fact:
+    cluster_client_url: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"

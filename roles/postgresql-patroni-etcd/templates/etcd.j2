@@ -17,7 +17,11 @@ ETCD_INITIAL_ADVERTISE_PEER_URLS="https://{{ ansible_host }}:2380"
 ETCD_INITIAL_CLUSTER="{{ cluster_items_url }}"
 ETCD_ADVERTISE_CLIENT_URLS="https://{{ ansible_host }}:2379"
 ETCD_INITIAL_CLUSTER_TOKEN="{{ etcd_cluster_token }}"
+{% if inventory_hostname in rds_hosts_new %}
+ETCD_INITIAL_CLUSTER_STATE="existing"
+{% else %}
 ETCD_INITIAL_CLUSTER_STATE="new"
+{% endif %}
 
 # TLS
 

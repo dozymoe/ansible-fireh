@@ -3,3 +3,4 @@
 - import_tasks: ubuntu.yml
 
 - import_tasks: ../../monit/handlers/main.yml
+  when: use_monit

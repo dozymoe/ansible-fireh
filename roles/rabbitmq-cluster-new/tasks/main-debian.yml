@@ -1,0 +1,17 @@
+- apt:
+    name:
+      - rabbitmq-server
+      # These are required for TLS but also already installed as dependencies
+      # - erlang-asn1
+      # - erlang-crypto
+      # - erlang-public-key
+      # - erlang-ssl
+    state: latest
+  become: true
+
+
+- service:
+    name: rabbitmq-server
+    enabled: false
+    state: stopped
+  become: true

@@ -1,0 +1,13 @@
+- apt:
+    name:
+      - haproxy
+    state: latest
+  become: true
+
+
+- service:
+    name: haproxy
+    enabled: "{{not daemons_on_demand}}"
+    state: started
+  become: true
+  ignore_errors: true

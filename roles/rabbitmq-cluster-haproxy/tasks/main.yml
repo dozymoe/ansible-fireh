@@ -1,0 +1,66 @@
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- unarchive:
+    dest: /etc/haproxy
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key"
+    owner: haproxy
+    group: haproxy
+  become: true
+
+- shell:
+    cmd:  >
+      cat
+      "{{ cert_archive_basedir }}/pki/issued/{{ item }}.crt"
+      "{{ cert_archive_basedir }}/pki/private/{{ item }}.key" >
+      "{{ cert_archive_basedir }}/pki/issued/pair.{{ item }}.pem"
+    chdir: /etc/haproxy
+  become: true
+  with_items:
+    - c.{{ hostname }}
+
+- file:
+    path: /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.{{ item }}.pem
+    owner: haproxy
+    group: haproxy
+    mode: u=rw,g=,o=
+  become: true
+  with_items:
+    - c.{{ hostname }}
+
+- blockinfile:
+    path: /etc/haproxy/haproxy.cfg
+    marker: '# {mark} rabbitmq-management'
+    block: |
+      {% if mq_hosts %}
+      listen rabbitmq_management
+          mode http
+          bind *:55671
+          balance roundrobin
+
+          option forwardfor
+
+          option httpchk
+          http-check connect ssl port 15671 linger
+          http-check send meth OPTIONS uri /health_check.html
+          http-check expect status 200
+
+          default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
+      {% for host in mq_hosts %}
+          server node{{ loop.index }} {{ host }}:15671 ssl maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
+      {% endfor %}
+      {% endif %}
+  become: true
+  notify: restart haproxy ({{ ansible_distribution | lower }})
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: rabbitmq-cluster-haproxy
+  become: true
+  with_items:
+    - "55671"

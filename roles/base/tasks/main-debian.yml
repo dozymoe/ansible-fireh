@@ -53,4 +53,5 @@
       {% endif %}
     insertbefore: '^exit 0'
     create: yes
+    mode: u=rwx,g=rx,o=
   become: true

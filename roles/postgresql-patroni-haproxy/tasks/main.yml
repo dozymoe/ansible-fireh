@@ -35,6 +35,7 @@
     path: /etc/haproxy/haproxy.cfg
     marker: '# {mark} patroni-{{ patroni_scope }}'
     block: |
+      {% if db_hosts %}
       listen {{ patroni_scope }}_primary
           mode tcp
           bind *:{{ postgresql_primary_port | default(5000) }}
@@ -63,6 +64,7 @@
       {% for host in db_hosts %}
           server node{{ loop.index }} {{ host }}:{{ patroni_port }} maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
       {% endfor %}
+      {% endif %}
   become: true
   notify: restart haproxy ({{ ansible_distribution | lower }})
 
@@ -70,7 +72,7 @@
     rule: allow
     port: "{{ item }}"
     proto: tcp
-    comment: haproxy
+    comment: postgresql-patroni-haproxy
   become: true
   with_items:
     - "{{ postgresql_primary_port }}"

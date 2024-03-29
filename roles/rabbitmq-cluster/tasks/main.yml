@@ -1,0 +1,108 @@
+- import_tasks: facts.yml
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+
+- file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ rabbitmq_unix_user }}"
+    group: "{{ rabbitmq_unix_group }}"
+    mode: u=rwx,g=rx,o=x
+  become: true
+  with_items:
+    - "{{ rabbitmq_config_dir }}"
+    - "{{ rabbitmq_data_dir }}"
+
+- unarchive:
+    dest: "{{ rabbitmq_config_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    owner: "{{ rabbitmq_unix_user }}"
+    group: "{{ rabbitmq_unix_group }}"
+  become: true
+  notify: restart rabbitmq ({{ ansible_distribution | lower }})
+
+- copy:
+    dest: "{{ rabbitmq_config_dir }}/rabbitmq.conf"
+    content: |
+      default_user = {{ rabbitmq_user }}
+      default_pass = {{ rabbitmq_password }}
+
+      listeners.tcp = none
+      listeners.ssl.default = 5671
+      num_acceptors.tcp = 0
+      num_acceptors.ssl = {{ [ansible_processor_vcpus, 10] | max }}
+
+      ssl_options.cacertfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+      ssl_options.certfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt
+      ssl_options.keyfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key
+      ssl_options.verify = verify_peer
+      ssl_options.fail_if_no_peer_cert = true
+
+      management.ssl.port = 15671
+      management.ssl.cacertfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
+      management.ssl.certfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt
+      management.ssl.keyfile = {{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key
+      management.ssl.verify = verify_peer
+      management.ssl.fail_if_no_peer_cert = true
+    owner: "{{ rabbitmq_unix_user }}"
+    group: "{{ rabbitmq_unix_group }}"
+  become: true
+  notify: restart rabbitmq ({{ ansible_distribution | lower }})
+
+- file:
+    path: /etc/systemd/system/rabbitmq-server.service.d
+    state: directory
+  become: true
+
+- copy:
+    dest: /etc/systemd/system/rabbitmq-server.service.d/limits.conf
+    content: |
+      [Service]
+      LimitNOFILE=64000
+  become: true
+  notify: restart rabbitmq ({{ ansible_distribution | lower }})
+
+- command: systemctl daemon-reload
+  become: true
+
+- rabbitmq_plugin:
+    new_only: true
+    names: rabbitmq_federation,rabbitmq_management,rabbitmq_federation_management
+  become: true
+
+- rabbitmq_parameter:
+    component: federation-upstream
+    name: "{{ hostvars[item]['rabbitmq_id'] }}"
+    value: " {\"uri\":\"amqps://{{ item }}:5671\
+      ?cacertfile={{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt\
+      &certfile={{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt\
+      &keyfile={{ rabbitmq_config_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key\
+      &verify=verify_peer\
+      \", \"expires\":3600000}"
+  become: true
+  with_items: "{{ mq_hosts | difference([inventory_hostname]) }}"
+  ignore_errors: true
+
+- rabbitmq_policy:
+    name: federate-me
+    pattern: ^federated\.
+    priority: 1
+    apply_to: exchanges
+    tags:
+      federation-upstream-set: all
+  become: true
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: etcd
+  become: true
+  with_items:
+    - "5671"
+    - "15671"

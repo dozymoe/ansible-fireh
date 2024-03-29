@@ -7,9 +7,8 @@
 
 - service:
     name: "{{item}}"
-    enabled: "{{ not daemons_on_demand }}"
-    state: started
+    enabled: false
+    state: stopped
   become: true
   with_items:
     - etcd
-  ignore_errors: true

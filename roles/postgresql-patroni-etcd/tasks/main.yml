@@ -1,34 +1,5 @@
-- name: Create the list
-  set_fact:
-    new_items: "{{ hostvars[item]['etcd_id'] }}=https://{{ item }}:2380"
-  with_items: "{{ rds_hosts }}"
-  register: new_items_reg
-
-- name: Extract items and turn into a list
-  set_fact:
-    cluster_items_url: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
-
-- name: Create the list
-  set_fact:
-    new_items: "{{ hostvars[item]['hostname'] }}"
-  with_items: "{{ rds_hosts }}"
-  register: new_items_reg
-
-- name: Extract items and turn into a list
-  set_fact:
-    cert_client_hostnames: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
-
-- name: Create the list
-  set_fact:
-    new_items: "{{ hostvars[item]['hostname'] }}"
-  with_items: "{{ rds_hosts }}"
-  register: new_items_reg
-
-- name: Extract items and turn into a list
-  set_fact:
-    cert_server_hostnames: "{{ new_items_reg.results | map(attribute='ansible_facts.new_items') | list | join(',') }}"
-
 - include_tasks: main-{{ ansible_distribution | lower }}.yml
+- include_tasks: facts.yml
 
 - file:
     path: "{{ data_dir }}"

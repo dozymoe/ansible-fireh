@@ -1,0 +1,8 @@
+- apt:
+    name:
+      - etcd-client
+      - etcd-server
+    state: absent
+    autoremove: true
+    purge: true
+  become: true

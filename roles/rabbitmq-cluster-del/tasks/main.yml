@@ -1,0 +1,11 @@
+- import_tasks: facts.yml
+
+- include_tasks: uninstall-{{ ansible_distribution | lower }}.yml
+
+- file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  with_items:
+    - "{{ rabbitmq_config_dir }}"
+    - "{{ rabbitmq_data_dir }}"

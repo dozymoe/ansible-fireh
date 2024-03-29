@@ -1,0 +1,72 @@
+- include_tasks: main-{{ ansible_distribution | lower }}.yml
+- include_tasks: facts.yml
+
+- file:
+    path: "{{ data_dir }}"
+    state: absent
+  become: true
+
+- file:
+    path: "{{ data_dir }}"
+    state: directory
+    owner: etcd
+    group: etcd
+    mode: u=rwx,g=,o=
+  become: true
+
+- unarchive:
+    dest: "{{ data_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    owner: etcd
+    group: etcd
+  become: true
+
+- name: member list
+  command: >
+    etcdctl --endpoints={{ cluster_client_url }}
+    --cacert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+    --cert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+    --key="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    member list
+  environment:
+    ETCDCTL_API: 3
+  register: cluster_status
+  become: true
+
+- debug:
+    msg: "{{ cluster_status.stdout }}"
+
+#- name: endpoint status
+#  command: >
+#    etcdctl --endpoints={{ cluster_client_url }}
+#    --cacert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+#    --cert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+#    --key="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+#    endpoint status
+#  environment:
+#    ETCDCTL_API: 3
+#  register: cluster_status
+#  become: true
+#
+#- debug:
+#    msg: "{{ cluster_status.stdout }}"
+
+- name: add member
+  command: >
+    etcdctl --endpoints={{ cluster_client_url }}
+    --cacert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
+    --cert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
+    --key="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
+    member add {{ etcd_id }} --peer-urls="https://{{ inventory_hostname }}:2380"
+  environment:
+    ETCDCTL_API: 3
+  register: cluster_status
+  become: true
+  ignore_errors: true
+
+- debug:
+    msg: "{{ cluster_status.stdout }}"

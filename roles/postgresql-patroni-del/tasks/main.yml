@@ -1,0 +1,13 @@
+- import_tasks: facts.yml
+
+- include_tasks: uninstall-{{ ansible_distribution | lower }}.yml
+
+- file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  with_items:
+    - "{{ patroni_config_dir }}"
+    - "{{ postgresql_config_dir }}"
+    - "{{ postgresql_data_dir }}"
+    - "{{ data_dir }}/{{ postgresql_version }}/{{ patroni_scope }}"

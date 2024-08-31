@@ -7,14 +7,14 @@
 
 
 - file:
-    path: /var/service
+    path: /etc/service
     state: directory
   become: true
 
 
 - lineinfile:
     path: /etc/runit/2
-    line: SVDIR=/var/service
+    line: SVDIR=/etc/service
     regexp: '^#?\s*SVDIR\s*='
   become: true
 

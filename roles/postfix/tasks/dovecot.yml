@@ -89,3 +89,18 @@
   become: true
   with_items:
     - create_email_user.py
+
+
+# See: https://github.com/fail2ban/fail2ban/issues/3292#issuecomment-1142503461
+- blockinfile:
+    dest: /etc/fail2ban/jail.d/postfix.conf
+    marker: "# {mark} dovecot"
+    content: |
+      [dovecot]
+      enabled = true
+      mode = aggressive
+      backend = systemd
+    create: true
+  become: true
+  notify: restart fail2ban ({{ ansible_distribution|lower }})
+  when: use_ufw

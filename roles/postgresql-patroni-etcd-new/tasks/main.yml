@@ -61,7 +61,7 @@
     --cacert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/ca.crt"
     --cert="{{ data_dir }}/{{ cert_archive_basedir }}/pki/issued/sc.{{ hostname }}.crt"
     --key="{{ data_dir }}/{{ cert_archive_basedir }}/pki/private/sc.{{ hostname }}.key"
-    member add {{ etcd_id }} --peer-urls="https://{{ inventory_hostname }}:2380"
+    member add {{ etcd_id }} --peer-urls="https://{{ ipv4|default(ipv6, true) }}:2380"
   environment:
     ETCDCTL_API: 3
   register: cluster_status

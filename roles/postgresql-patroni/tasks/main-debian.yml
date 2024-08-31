@@ -5,6 +5,7 @@
   with_items:
     - postgresql-common
     - postgresql-contrib
+    - unzip
 
 - name: Disable auto creation of PostgreSQL clusters
   lineinfile:

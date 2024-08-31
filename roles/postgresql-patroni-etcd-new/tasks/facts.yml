@@ -1,6 +1,6 @@
 - name: Create the list
   set_fact:
-    new_items: "{{ item }}:2379"
+    new_items: "{{ hostvars[item].ipv4|default(hostvars[item].ipv6, true) }}:2379"
   with_items: "{{ rds_hosts }}"
   register: new_items_reg
 

@@ -1,0 +1,5 @@
+- name: restart fail2ban (debian)
+  service:
+    name: fail2ban
+    state: restarted
+  become: true

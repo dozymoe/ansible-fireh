@@ -1,5 +1,5 @@
 - include_tasks: facts.yml
-- include_tasks: main-{{ ansible_distribution | lower }}.yml
+- include_tasks: main-{{ ansible_distribution|lower }}.yml
 
 - name: Create the file to load the watchdog module
   file:

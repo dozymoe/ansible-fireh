@@ -1,11 +1,12 @@
 user = {{ mta_database_user }}
 password = {{ mta_database_password }}
-hosts = {{ postgresql_host }}
+#hosts = {{ postgresql_host }}
+hosts = postgresql://{{ mta_database_user }}:{{ mta_database_password }}@{{ postgresql_host }}:{{ postgresql_secondary_port | default(postgresql_port) }}/{{mta_database_name}}
 port = {{ postgresql_secondary_port | default(postgresql_port) }}
 dbname = {{ mta_database_name }}
 query = SELECT destination FROM virtual_aliases WHERE source='%s'
 
-tls_cert_file = /etc/postfix/ca/pki/issued/{{ mta_database_user }}.{{ hostname }}.crt
-tls_key_file = /etc/postfix/ca/pki/private/{{ mta_database_user }}.{{ hostname }}.crt
-tls_CAfile = /etc/postfix/ca/pki/ca.crt
-tls_verify_cert = yes
+#tls_cert_file = /etc/postfix/ca/pki/issued/{{ mta_database_user }}.{{ hostname }}.crt
+#tls_key_file = /etc/postfix/ca/pki/private/{{ mta_database_user }}.{{ hostname }}.key
+#tls_CAfile = /etc/postfix/ca/pki/ca.crt
+#tls_verify_cert = yes

@@ -1,0 +1,19 @@
+- name: reload postgresql (debian)
+  service:
+    name: postgresql
+    state: reloaded
+  become: true
+
+
+- name: restart postgresql (debian)
+  service:
+    name: postgresql
+    state: restarted
+  become: true
+
+
+- name: stop postgresql (debian)
+  service:
+    name: postgresql
+    state: stopped
+  become: true

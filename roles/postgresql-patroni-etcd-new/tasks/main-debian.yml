@@ -2,6 +2,7 @@
     name:
       - etcd-client
       - etcd-server
+      - unzip
     state: latest
   become: true
 

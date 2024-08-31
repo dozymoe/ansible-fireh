@@ -1,6 +1,6 @@
 - name: Create the list
   set_fact:
-    new_items: "{{ hostvars[item]['etcd_id'] }}=https://{{ item }}:2380"
+    new_items: "{{ hostvars[item]['etcd_id'] }}=https://{{ hostvars[item].ipv4|default(hostvars[item].ipv6, true) }}:2380"
   with_items: "{{ rds_hosts }}"
   register: new_items_reg
 

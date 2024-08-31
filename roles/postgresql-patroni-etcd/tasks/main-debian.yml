@@ -2,11 +2,12 @@
     name:
       - etcd-client
       - etcd-server
+      - unzip
     state: latest
   become: true
 
 - service:
-    name: "{{item}}"
+    name: "{{ item }}"
     enabled: "{{ not daemons_on_demand }}"
     state: started
   become: true

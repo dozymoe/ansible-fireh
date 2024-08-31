@@ -1,11 +1,13 @@
 - apt:
-    name: runit
+    name:
+      - daemontools
+      - runit
     state: latest
   become: true
 
 
 - file:
-    path: /var/service
+    path: /etc/service
     state: directory
   become: true
 

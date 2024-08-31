@@ -81,13 +81,14 @@ bootstrap:
         - data-checksums
         - encoding: UTF8
     pg_hba:
-        - local     all         all                   peer
-        - hostnossl all         all         0.0.0.0/0 reject
-        - hostssl   all         postgres    0.0.0.0/0 cert
-        - hostssl   all         rewind_user 0.0.0.0/0 cert
-        - hostssl   replication replicator  0.0.0.0/0 cert
-        #- hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
-        - hostssl   all         +users      0.0.0.0/0 md5 clientcert=verify-ca
+        - local     all         all                          peer
+        - host      postgres    postgres        127.0.0.1/32 trust
+        - hostssl   all         postgres        0.0.0.0/0    cert
+        - hostssl   all         rewind_user     0.0.0.0/0    cert
+        - hostssl   replication replicator      0.0.0.0/0    cert
+        - hostssl   all         +users          0.0.0.0/0    scram-sha-256 clientcert=verify-ca
+        - host      all         +insecure_users 0.0.0.0/0    scram-sha-256
+        - hostnossl all         all             0.0.0.0/0    reject
         # For kerberos gss based connectivity (discard @.*$)
         # - host replication replicator 127.0.0.1/32 gss include_realm=0
         # - host all all 0.0.0.0/0 gss include_realm=0
@@ -96,9 +97,9 @@ bootstrap:
 
 #zookeeper:
 #    hosts:
-#      {% for host in rds_hosts %}
-#  - {{ host }}:2281
-#      {% endfor %}
+#{% for host in rds_hosts %}
+#     - {{ hostvars[host].ipv4|default(hostvars[host].ipv6, true) }}:2281
+#{% endfor %}
 #
 #    use_ssl: true
 #    cacert: {{ patroni_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt
@@ -111,9 +112,9 @@ bootstrap:
 etcd3:
     # host:
     hosts:
-      {% for host in rds_hosts %}
-  - {{ host }}:2379
-      {% endfor %}
+{% for host in rds_hosts %}
+     - {{ hostvars[host].ipv4|default(hostvars[host].ipv6, true) }}:2379
+{% endfor %}
 
     # use_proxies:
     # url:
@@ -158,7 +159,7 @@ postgresql:
     #     on_role_change:
     #     on_start:
     #     on_stop:
-    connect_address: {{ ansible_host }}:{{ patroni_port | default(5432) }}
+    connect_address: {{ ipv4|default(ipv6, true) }}:{{ patroni_port | default(5432) }}
     # The address of connection pool (e.g., pgbouncer) running next to
     # Patroni/Postgres. Only for service discovery.
     # proxy_address: 127.0.0.1:5433
@@ -186,13 +187,14 @@ postgresql:
         # Server side kerberos spn
         # krbsrvname: postgres
     pg_hba:
-        - local     all         all                   peer
-        - hostnossl all         all         0.0.0.0/0 reject
-        - hostssl   all         postgres    0.0.0.0/0 cert
-        - hostssl   all         rewind_user 0.0.0.0/0 cert
-        - hostssl   replication replicator  0.0.0.0/0 cert
-        #- hostssl   all         +users      0.0.0.0/0 scram-sha-256 clientcert=verify-ca
-        - hostssl   all         +users      0.0.0.0/0 md5 clientcert=verify-ca
+        - local     all         all                          peer
+        - host      postgres    postgres        127.0.0.1/32 trust
+        - hostssl   all         postgres        0.0.0.0/0    cert
+        - hostssl   all         rewind_user     0.0.0.0/0    cert
+        - hostssl   replication replicator      0.0.0.0/0    cert
+        - hostssl   all         +users          0.0.0.0/0    scram-sha-256 clientcert=verify-ca
+        - host      all         +insecure_users 0.0.0.0/0    scram-sha-256
+        - hostnossl all         all             0.0.0.0/0    reject
     # pg_ident:
     # pg_ctl_timeout: 60
     use_pg_rewind: true
@@ -204,7 +206,7 @@ postgresql:
     # pre_promote: /path/to/pre_promote.sh
 
 restapi:
-    connect_address: {{ ansible_host }}:{{ patroni_api_port | default(8008) }}
+    connect_address: {{ ipv4|default(ipv6, true) }}:{{ patroni_api_port | default(8008) }}
     listen: 0.0.0.0:{{ patroni_api_port | default(8008) }}
     authentication:
         username: "{{ patroni_user }}"

@@ -1,0 +1,22 @@
+- file:
+    path: /etc/haproxy/{{ cert_archive_basedir }}
+    state: absent
+  become: true
+
+- blockinfile:
+    path: /etc/haproxy/haproxy.cfg
+    marker: '# {mark} patroni-{{ patroni_scope }}'
+    state: absent
+  become: true
+  notify: restart haproxy ({{ ansible_distribution|lower }})
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: postgresql-patroni-haproxy
+    delete: true
+  become: true
+  with_items:
+    - "{{ postgresql_primary_port }}"
+    - "{{ postgresql_secondary_port }}"

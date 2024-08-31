@@ -1,31 +1,31 @@
 - stat:
-    path: "{{work_dir}}/pki/issued/c.{{ hostvars[item].hostname }}.crt"
+    path: "{{ work_dir }}/pki/issued/c.{{ hostvars[item].hostname }}.crt"
   become: true
   register: test_stat
 
 - file:
-    path: "{{work_dir}}/pki/private/c.{{ hostvars[item].hostname }}.key"
+    path: "{{ work_dir }}/pki/private/c.{{ hostvars[item].hostname }}.key"
     state: absent
   become: true
   when: not test_stat.stat.exists
 
 - file:
-    path: "{{work_dir}}/pki/reqs/c.{{ hostvars[item].hostname }}.req"
+    path: "{{ work_dir }}/pki/reqs/c.{{ hostvars[item].hostname }}.req"
     state: absent
   become: true
   when: not test_stat.stat.exists
 
 - expect:
-    command: "{{work_dir}}/easyrsa --subject-alt-name='IP:{{item}},DNS:{{ hostvars[item].hostname }}' gen-req c.{{ hostvars[item].hostname }} nopass"
-    chdir: "{{work_dir}}"
+    command: "{{ work_dir }}/easyrsa --subject-alt-name='IP:{{ hostvars[item].ipv4|default(hostvars[item].ipv6, true) }},DNS:{{ hostvars[item].hostname }}' gen-req c.{{ hostvars[item].hostname }} nopass"
+    chdir: "{{ work_dir }}"
     responses:
       "Common Name \\(eg:": "{{ hostvars[item].hostname }}"
   become: true
   when: not test_stat.stat.exists
 
 - expect:
-    command: "{{work_dir}}/easyrsa sign-req client c.{{ hostvars[item].hostname }}"
-    chdir: "{{work_dir}}"
+    command: "{{ work_dir }}/easyrsa sign-req client c.{{ hostvars[item].hostname }}"
+    chdir: "{{ work_dir }}"
     responses:
       "Confirm request details:": "yes"
   become: true

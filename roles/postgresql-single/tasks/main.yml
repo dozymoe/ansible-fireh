@@ -1,0 +1,194 @@
+- import_tasks: facts.yml
+- include_tasks: "pre-{{ ansible_distribution|lower }}.yml"
+
+- include_tasks: upgrade-{{ ansible_distribution|lower }}.yml
+  when: postgresql_old_version is defined
+
+- user:
+    name: postgres
+    password: "{{ postgres_unix_password_crypted }}"
+  become: true
+
+- locale_gen:
+    name: C.UTF-8
+    state: present
+  become: true
+
+- file:
+    path: "{{ item }}"
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: u=rwx,g=,o=
+    recurse: true
+  become: true
+  with_items:
+    - /etc/postgresql/{{ postgresql_version }}
+    - /etc/postgresql/{{ postgresql_version }}/{{ postgresql_scope }}
+    - "{{ data_dir }}/{{ postgresql_version }}"
+    - "{{ data_dir }}/{{ postgresql_version }}/{{ postgresql_scope }}"
+
+- name: Create the file to load the watchdog module
+  file:
+    path: /etc/modules-load.d/softdog.conf
+    state: touch
+  become: true
+
+- name: Add the watchdog module
+  command: modprobe softdog
+  become: true
+
+- name: Change ownershhip of the watchdog device
+  command: chown postgres /dev/watchdog
+  become: true
+
+#- name: Setup pgpass
+#  copy:
+#    dest: "{{ postgresql_home_dir }}/.pgpass"
+#    content: "*:*:*:postgres:{{ postgres_database_password }}"
+#    mode: 0600
+#    owner: postgres
+#    group: postgres
+#  become: true
+
+- unarchive:
+    dest: "{{ postgresql_config_dir }}"
+    src: "{{ cert_archive_file }}"
+    include:
+      - "{{ cert_archive_basedir }}/pki/ca.crt"
+      - "{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/c.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/c.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/postgres.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/postgres.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/replicator.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/replicator.{{ hostname }}.key"
+      - "{{ cert_archive_basedir }}/pki/issued/rewind_user.{{ hostname }}.crt"
+      - "{{ cert_archive_basedir }}/pki/private/rewind_user.{{ hostname }}.key"
+    owner: postgres
+    group: postgres
+  become: true
+
+- name: generate dhparam
+  command: openssl dhparam -out {{ postgresql_config_dir }}/dhparam.pem 2048
+  args:
+    creates: "{{ postgresql_config_dir }}/dhparam.pem"
+  become: true
+  become_user: postgres
+  notify: reload postgresql ({{ ansible_distribution|lower }})
+
+- command: >
+    {{ postgresql_lib_dir }}/bin/initdb
+    --encoding=UTF8 --data-checksums --no-locale
+    -D {{ postgresql_data_dir }}
+  args:
+    creates: "{{ postgresql_data_dir }}/pg_hba.conf"
+  become: true
+  become_user: postgres
+
+- file:
+    src: "{{ postgresql_data_dir}}/{{ item }}"
+    dest: "{{ postgresql_config_dir}}/{{ item }}"
+    state: link
+  become: true
+  with_items:
+    - pg_hba.conf
+    - pg_ident.conf
+    - postgresql.conf
+
+- lineinfile:
+    path: "{{ postgresql_config_dir }}/postgresql.conf"
+    line: "{{ item.line }}"
+    regexp: "{{ item.regexp }}"
+    backrefs: yes
+  become: true
+  notify: restart postgresql ({{ ansible_distribution|lower }})
+  with_items:
+    - line: "listen_addresses = '*'\\1"
+      regexp: "^#?listen_addresses\\s*=\\s*['\"][a-z0-9,.*-]+['\"](.*)"
+
+    - line: "port = {{ postgresql_port }}\\1"
+      regexp: "^#?port\\s*=\\s*\\d+(.*)"
+
+    - line: "data_directory = '{{ postgresql_data_dir }}'\\1"
+      regexp: "^#data_directory?\\s*=\\s*'.*'(.*)"
+
+    - line: "ssl = on"
+      regexp: '^#?ssl\s*='
+
+    - line: "ssl_ca_file = '{{ postgresql_config_dir }}/{{ cert_archive_basedir }}/pki/ca.crt'"
+      regexp: '^#?ssl_ca_file\s*='
+
+    - line: "ssl_cert_file = '{{ postgresql_config_dir }}/{{ cert_archive_basedir }}/pki/issued/s.{{ hostname }}.crt'"
+      regexp: '^#?ssl_cert_file\s*='
+
+    - line: "ssl_crl_file = ''"
+      regexp: '^#?ssl_crl_file\s*='
+
+    - line: "ssl_key_file = '{{ postgresql_config_dir }}/{{ cert_archive_basedir }}/pki/private/s.{{ hostname }}.key'"
+      regexp: '^#?ssl_key_file\s*='
+
+    - line: "ssl_dh_params_file = '{{ postgresql_config_dir }}/dhparam.pem'"
+      regexp: '^#?ssl_dh_params_file\s*='
+
+    - line: "log_timezone = '{{ timezone }}'\\1"
+      regexp: "^#?log_timezone\\s*=\\s*['\"][a-zA-Z/]+['\"](.*)"
+
+    - line: "timezone = '{{ timezone }}'\\1"
+      regexp: "^#?timezone\\s*=\\s*['\"][a-zA-Z/]+['\"](.*)"
+
+    - line: "log_destination = 'syslog'\\1"
+      regexp: "^#?log_destination\\s*=\\s*['\"][a-z]+['\"](.*)"
+
+    - line: "#unix_socket_directories =\\1"
+      regexp: "^#?unix_socket_directories\\s*=(.*)"
+
+- blockinfile:
+    path: "{{ postgresql_config_dir }}/pg_hba.conf"
+    marker: "# {mark} postgresql-single"
+    block: |
+      hostssl   all         postgres        0.0.0.0/0    cert
+      hostssl   all         rewind_user     0.0.0.0/0    cert
+      hostssl   replication replicator      0.0.0.0/0    cert
+      hostssl   all         +users          0.0.0.0/0    scram-sha-256 clientcert=verify-ca
+      host      all         +insecure_users 0.0.0.0/0    scram-sha-256
+      hostnossl all         all             0.0.0.0/0    reject
+  become: true
+  notify: restart postgresql ({{ ansible_distribution|lower }})
+
+- import_tasks: optimize.yml
+
+- ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+    comment: postgresql
+  become: true
+  with_items:
+    - "{{ postgresql_port }}"
+
+- service:
+    name: postgresql@{{ postgresql_version }}-{{ postgresql_scope }}
+    enabled: "{{ not daemons_on_demand }}"
+    state: restarted
+  become: true
+
+- block:
+    - name: set postgres user database password
+      postgresql_user:
+        name: postgres
+        password: "{{ postgres_database_password }}"
+        port: "{{ postgresql_port }}"
+
+    - blockinfile:
+        dest: "{{ postgresql_home_dir }}/.pgpass"
+        content: 127.0.0.1:{{ postgresql_port }}:*:postgres:{{ postgres_database_password }}
+        mode: u=rw,g=,o=
+        marker: "# {mark} postgres password"
+        create: yes
+  rescue:
+    - debug:
+        msg: Failed to setup postgres user database password
+  become: true
+  become_user: postgres

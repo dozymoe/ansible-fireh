@@ -1,2 +1,2 @@
-- include_tasks: ../../postgresql-server/tasks/facts-{{ ansible_distribution | lower }}.yml
-- include_tasks: facts-{{ ansible_distribution | lower }}.yml
+- include_tasks: ../../postgresql-server/tasks/facts-{{ ansible_distribution|lower }}.yml
+- include_tasks: facts-{{ ansible_distribution|lower }}.yml

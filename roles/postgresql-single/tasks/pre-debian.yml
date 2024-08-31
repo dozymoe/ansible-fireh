@@ -1,0 +1,51 @@
+- file:
+    path: /etc/apt/sources.list.d
+    state: directory
+  become: true
+
+- apt:
+    name:
+      - apt-transport-https
+      - gpg
+    state: latest
+  become: true
+
+- apt_key:
+    url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+  become: true
+
+# 404 error
+#- apt_repository:
+#    repo: deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main
+#  ignore_errors: true
+#  become: true
+
+- apt:
+    name: "{{ item }}"
+    state: latest
+  become: true
+  with_items:
+    - postgresql-common
+    - unzip
+
+- name: Disable auto creation of PostgreSQL clusters
+  lineinfile:
+    dest: /etc/postgresql-common/createcluster.conf
+    line: create_main_cluster = false
+    regexp: ".*create_main_cluster.*"
+  become: true
+
+- apt:
+    name:
+      - postgresql-{{ postgresql_version }}
+      - libpq-dev
+      - python3-cryptography
+      - python3-psycopg2
+    state: latest
+  become: true
+
+- service:
+    name: postgresql
+    enabled: false
+    state: stopped
+  become: true

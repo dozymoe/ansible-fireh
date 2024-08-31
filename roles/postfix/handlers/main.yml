@@ -1,3 +1,6 @@
+- import_tasks: ../../ufw/handlers/main.yml
+  when: use_ufw
+
 - import_tasks: debian.yml
 - import_tasks: gentoo.yml
 - import_tasks: ubuntu.yml

@@ -1,9 +1,9 @@
-- include_tasks: "main-{{ansible_distribution | lower}}.yml"
+- include_tasks: "main-{{ ansible_distribution | lower }}.yml"
 
 
 - name: update hostname
   hostname:
-    name: "{{hostname}}"
+    name: "{{ hostname }}"
   become: true
   when: hostname is defined
 
@@ -13,18 +13,28 @@
     dest: /etc/hosts
     marker: "# {mark} hostname"
     content: |
-      127.0.0.1 {{hostname}}
+      {{ ipv4 }} {{ hostname }}
+      {% if ipv6 %}
+      {{ ipv6 }} {{ hostname }}
+      {% endif %}
   become: true
   when: hostname is defined
+
+
+- name: update locales
+  locale_gen:
+    name: "{{ item }}"
+  become: true
+  with_items: "{{ locales }}"
 
 
 - copy:
     dest: /etc/sysctl.d/server.conf
     content: |
-      net.core.somaxconn = {{sys_net_core_somaxconn|default(128)}}
-      fs.file-max = {{sys_fs_file_max|default(65536)}}
-      vm.overcommit_memory = {{sys_vm_overcommit_memory|default(0)}}
-      fs.inotify.max_user_watches = {{fs_inotify_max_user_watches|default(8192)}}
+      net.core.somaxconn = {{ sys_net_core_somaxconn|default(128) }}
+      fs.file-max = {{ sys_fs_file_max|default(65536) }}
+      vm.overcommit_memory = {{ sys_vm_overcommit_memory|default(0) }}
+      fs.inotify.max_user_watches = {{ fs_inotify_max_user_watches|default(8192) }}
   become: true
 
 
@@ -32,7 +42,7 @@
     marker: '# {mark} server'
     dest: /etc/security/limits.conf
     content: |
-      *                soft    nofile          {{ulimit_n|default(65536)}}
-      *                hard    nofile          {{ulimit_n|default(65536)}}
+      *                soft    nofile          {{ ulimit_n|default(65536) }}
+      *                hard    nofile          {{ ulimit_n|default(65536) }}
     insertbefore: "^#\\s+End of file"
   become: true

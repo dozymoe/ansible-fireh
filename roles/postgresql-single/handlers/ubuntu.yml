@@ -1,0 +1,19 @@
+- name: reload postgresql (ubuntu)
+  service:
+    name: postgresql
+    state: reloaded
+  become: true
+
+
+- name: restart postgresql (ubuntu)
+  service:
+    name: postgresql
+    state: restarted
+  become: true
+
+
+- name: stop postgresql (ubuntu)
+  service:
+    name: postgresql
+    state: stopped
+  become: true

@@ -1,4 +1,4 @@
-- include_tasks: main-{{ ansible_distribution | lower }}.yml
+- include_tasks: main-{{ ansible_distribution|lower }}.yml
 
 - command:
     cmd: make-cadir "{{ work_dir }}"
@@ -65,17 +65,17 @@
 
 - archive:
     path: "{{ work_dir }}"
-    dest: /tmp/ca.tar.xz
-    format: xz
+    dest: /tmp/ca.tar.gz
+    format: gz
     force_archive: true
   become: true
 
 - synchronize:
-    src: /tmp/ca.tar.xz
+    src: /tmp/ca.tar.gz
     dest: "{{ backup_file }}"
     mode: pull
 
 - file:
-    path: /tmp/ca.tar.xz
+    path: /tmp/ca.tar.gz
     state: absent
   become: true

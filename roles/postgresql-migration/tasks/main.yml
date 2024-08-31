@@ -1,0 +1,41 @@
+- shell:
+    cmd: >
+      pg_dumpall -d "host={{ source.host }} port={{ source.port }}
+      sslcert={{ source.cert_basedir }}/pki/issued/postgres.{{ hostvars[source.delegate_to].hostname }}.crt
+      sslkey={{ source.cert_basedir }}/pki/private/postgres.{{ hostvars[source.delegate_to].hostname }}.key
+      sslrootcert={{ source.cert_basedir }}/pki/ca.crt
+      sslmode=verify-ca"
+      --exclude-database=postgres
+      --exclude-database=template0
+      --exclude-database=template1
+      | gzip -c > /tmp/dumpall.sql.gz
+  delegate_to: "{{ source.delegate_to }}"
+  become: true
+  become_user: postgres
+
+- fetch:
+    src: /tmp/dumpall.sql.gz
+    dest: "{{ backup_file }}"
+    flat: true
+  delegate_to: "{{ source.delegate_to }}"
+
+- file:
+    path: /tmp/dumpall.sql.gz
+    state: absent
+  delegate_to: "{{ source.delegate_to }}"
+  become: true
+
+- synchronize:
+    src: "{{ backup_file }}"
+    dest: /tmp/dumpall.sql.gz
+
+- shell:
+    cmd: >
+      cat /tmp/dumpall.sql.gz | gunzip -c |
+      psql -h localhost -p {{ postgresql_port }}
+  become: true
+  become_user: postgres
+
+- file:
+    path: /tmp/dumpall.sql.gz
+    state: absent

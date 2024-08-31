@@ -1,0 +1,16 @@
+- name: postgresql debian facts
+  set_fact:
+    postgresql_data_dir: "{{ data_dir }}/{{ postgresql_version }}/{{ postgresql_scope }}"
+    postgresql_config_dir: /etc/postgresql/{{ postgresql_version }}/{{ postgresql_scope }}
+    postgresql_share_dir: /usr/share/postgresql/{{ postgresql_version }}
+    postgresql_lib_dir: /usr/lib/postgresql/{{ postgresql_version }}
+    postgresql_home_dir: /var/lib/postgresql
+
+- name: postgresql gentoo facts
+  set_fact:
+    postgresql_old_data_dir: "{{ data_dir }}/{{ postgresql_old_version }}/{{ postgresql_scope }}"
+    postgresql_old_config_dir: /etc/postgresql/{{ postgresql_old_version }}/{{ postgresql_scope }}
+    postgresql_old_share_dir: /usr/share/postgresql/{{ postgresql_old_version }}
+    postgresql_old_lib_dir: /usr/lib/postgresql/{{ postgresql_old_version }}
+    postgresql_old_home_dir: /var/lib/postgresql
+  when: postgresql_old_version is defined

@@ -1,0 +1,40 @@
+- portage:
+    name:
+      - dev-db/postgresql:{{ postgresql_version }}
+      - dev-python/psycopg
+  become: true
+
+- portage:
+    name:
+      - dev-db/postgresql:{{ postgresql_version }}
+      - dev-python/psycopg:2
+    state: latest
+    deep: yes
+    newuse: yes
+  become: true
+
+
+- lineinfile:
+    path: /etc/conf.d/postgresql-{{ postgresql_version }}
+    line: "{{ item.line }}"
+    regexp: "{{ item.regexp }}"
+  become: true
+  with_items:
+    - line: PG_INITDB_OPTS="--encoding=UTF8 --data-checksums --no-locale"
+      regexp: '^#?PG_INITDB_OPTS\s*='
+    - line: DATA_DIR="{{ postgresql_data_dir }}"
+      regexp: '^#?DATA_DIR\s*='
+
+
+- command: emerge --config dev-db/postgresql:{{ postgresql_version }}
+  args:
+    creates: "{{ postgresql_data_dir }}/pg_hba.conf"
+  become: true
+
+
+- service:
+    name: postgresql-{{ postgresql_version }}
+    enabled: "{{ not daemons_on_demand }}"
+    state: started
+  become: true
+  ignore_errors: true

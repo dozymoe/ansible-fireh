@@ -11,8 +11,8 @@
       - "{{ cert_archive_basedir }}/pki/ca.crt"
       - "{{ cert_archive_basedir }}/pki/issued/{{ mta_database_user}}.{{ hostname }}.crt"
       - "{{ cert_archive_basedir }}/pki/private/{{ mta_database_user}}.{{ hostname }}.key"
-    owner: postfix
-    group: postfix
+    owner: root
+    group: root
   become: true
 
 - name: add postfix to opendkim group
@@ -22,6 +22,15 @@
     append: yes
   become: true
 
+
+- file:
+    path: "{{ item }}"
+    owner: root
+    group: "{{ postfix_unix_group }}"
+  become: true
+  notify: restart postfix ({{ansible_distribution|lower}})
+  with_items:
+    - /etc/postfix/main.cf
 
 - name: configure main.cf
   lineinfile:
@@ -48,6 +57,9 @@
 
     - line: "smtpd_tls_key_file = /etc/postfix/server.key"
       regex: '^#?smtpd_tls_key_file\s*='
+
+    #- line: "smtpd_tls_protocols = >=TLSv1"
+    #  regex: '^#?smtpd_tls_protocols\s*='
 
     - line: "smtpd_use_tls = yes"
       regex: '^#?smtpd_use_tls\s*='
@@ -193,7 +205,33 @@
     - 25
     - 465
     - 587
-    - 110
-    - 995
-    - 143
     - 993
+    - 995
+
+# Something is blocking access to ssl postfix, these are alternative ports
+- name: firewall
+  ufw:
+    rule: allow
+    port: "{{item}}"
+    proto: tcp
+    comment: postfix-alternative
+  become: true
+  when: use_ufw
+  with_items:
+    - 1465
+    - 1587
+    - 1993
+    - 1995
+
+# See: https://github.com/fail2ban/fail2ban/issues/3292#issuecomment-1142503461
+- blockinfile:
+    dest: /etc/fail2ban/jail.d/postfix.conf
+    marker: "# {mark} postfix"
+    content: |
+      [postfix]
+      enabled = true
+      backend = systemd
+    create: true
+  become: true
+  notify: restart fail2ban ({{ ansible_distribution|lower }})
+  when: use_ufw

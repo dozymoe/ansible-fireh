@@ -16,7 +16,7 @@
   when: not test_stat.stat.exists
 
 - expect:
-    command: "{{work_dir}}/easyrsa --subject-alt-name='IP:{{item}},DNS:{{ hostvars[item].hostname }}' gen-req s.{{ hostvars[item].hostname }} nopass"
+    command: "{{work_dir}}/easyrsa --subject-alt-name='IP:{{ hostvars[item].ipv4|default(hostvars[item].ipv6, true) }},DNS:{{ hostvars[item].hostname }}' gen-req s.{{ hostvars[item].hostname }} nopass"
     chdir: "{{work_dir}}"
     responses:
       "Common Name \\(eg:": "{{ hostvars[item].hostname }}"

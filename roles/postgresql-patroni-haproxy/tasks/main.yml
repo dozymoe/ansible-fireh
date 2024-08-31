@@ -47,7 +47,7 @@
 
           default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
       {% for host in db_hosts %}
-          server node{{ loop.index }} {{ host }}:{{ patroni_port }} maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
+          server node{{ loop.index }} {{ hostvars[host].ipv4|default(hostvars[host].ipv6, true) }}:{{ patroni_port }} maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
       {% endfor %}
 
       listen {{ patroni_scope }}_secondary
@@ -62,7 +62,7 @@
 
           default-server inter 3s fall 3 rise 2 on-marked-down shutdown-sessions
       {% for host in db_hosts %}
-          server node{{ loop.index }} {{ host }}:{{ patroni_port }} maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
+          server node{{ loop.index }} {{ hostvars[host].ipv4|default(hostvars[host].ipv6, true) }}:{{ patroni_port }} maxconn 100 check ca-file /etc/haproxy/{{ cert_archive_basedir}}/pki/ca.crt crt /etc/haproxy/{{ cert_archive_basedir }}/pki/issued/pair.c.{{ hostname }}.pem
       {% endfor %}
       {% endif %}
   become: true

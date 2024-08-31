@@ -98,6 +98,7 @@
       postgresql_user:
         name: postgres
         password: "{{postgres_database_password}}"
+        port: "{{ postgresql_port }}"
 
     - blockinfile:
         dest: "{{postgresql_home_dir}}/.pgpass"

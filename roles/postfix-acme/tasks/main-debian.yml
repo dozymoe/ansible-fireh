@@ -18,7 +18,7 @@
         #!/bin/sh
         cp /etc/ssl/certs/{{cert_name}}.pem /etc/postfix/server.crt
         cp /etc/ssl/private/{{cert_name}}.key /etc/postfix/server.key
-        chown {{postfix_unix_user}}:{{postfix_unix_group}} /etc/postfix/server.*
+        chown root:root /etc/postfix/server.*
         chmod u=rw,g=r,o= /etc/postfix/server.crt
         chmod u=rw,g=,o= /etc/postfix/server.key
         systemctl reload postfix

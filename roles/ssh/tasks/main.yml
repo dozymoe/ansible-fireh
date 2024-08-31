@@ -1,12 +1,12 @@
-- include_tasks: "{{ansible_distribution | lower}}.yml"
+- include_tasks: "{{ ansible_distribution|lower }}.yml"
 
 
 - lineinfile:
     path: /etc/ssh/sshd_config
-    line: "{{item.line}}"
-    regexp: "{{item.regexp}}"
-  become: True
-  notify: reload ssh ({{ansible_distribution|lower}})
+    line: "{{ item.line }}"
+    regexp: "{{ item.regexp }}"
+  become: true
+  notify: reload ssh ({{ ansible_distribution|lower }})
   with_items:
     - line: PermitRootLogin yes
       regexp: '^#?PermitRootLogin\s'
@@ -25,10 +25,10 @@
 
 - lineinfile:
     path: /etc/ssh/sshd_config
-    line: Port {{ansible_port | default(22)}}
+    line: Port {{ ansible_port|default(22) }}
     regexp: '^#?Port\s'
-  become: True
-  notify: reload ssh ({{ansible_distribution|lower}})
+  become: true
+  notify: reload ssh ({{ ansible_distribution|lower }})
   when: ssh_ports is undefined
 
 - blockinfile:
@@ -36,11 +36,11 @@
     marker: "# {mark} ports"
     content: |
       {% for port in ssh_ports %}
-      Port {{port}}
+      Port {{ port }}
       {% endfor %}
     insertafter: '^#?Port\s'
   become: true
-  notify: reload ssh ({{ansible_distribution|lower}})
+  notify: reload ssh ({{ ansible_distribution|lower }})
   when: ssh_ports is defined
 
 
@@ -58,20 +58,20 @@
           PasswordAuthentication no
           PubkeyAuthentication yes
   become: true
-  notify: reload ssh ({{ansible_distribution|lower}})
+  notify: reload ssh ({{ ansible_distribution|lower }})
 
 
 - blockinfile:
     dest: /etc/ssh/sshd_config
     marker: "# {mark} remote_admin"
     content: |
-      Match User {{ansible_user}}
+      Match User {{ ansible_user }}
           X11Forwarding no
           AllowTcpForwarding no
           PasswordAuthentication no
           PubkeyAuthentication yes
   become: true
-  notify: reload ssh ({{ansible_distribution|lower}})
+  notify: reload ssh ({{ ansible_distribution|lower }})
 
 
 - blockinfile:
@@ -79,12 +79,27 @@
     marker: "# {mark} login_users"
     content: |
       {% for user in ssh_login_users %}
-      Match User {{user}}
+      Match User {{ user }}
           X11Forwarding yes
           AllowTcpForwarding yes
           PasswordAuthentication yes
           PubkeyAuthentication yes
       {% endfor %}
   become: true
-  notify: reload ssh ({{ansible_distribution|lower}})
+  notify: reload ssh ({{ ansible_distribution|lower }})
   when: ssh_login_users is defined
+
+
+# See: https://github.com/fail2ban/fail2ban/issues/3292#issuecomment-1142503461
+- blockinfile:
+    dest: /etc/fail2ban/jail.d/ssh.conf
+    marker: "# {mark} ssh"
+    content: |
+      [sshd]
+      enabled = true
+      mode = aggressive
+      backend = systemd
+    create: true
+  become: true
+  notify: restart fail2ban ({{ ansible_distribution|lower }})
+  when: use_ufw
